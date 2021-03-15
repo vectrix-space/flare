@@ -1,1 +1,3 @@
-rootProject.name = "flare"
+rootProject.name = "flare-parent"
+
+include("flare")

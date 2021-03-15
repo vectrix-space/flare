@@ -6,7 +6,7 @@ plugins {
   id("net.kyori.indra.license-header") version "1.3.1"
 }
 
-allprojects {
+subprojects {
   apply<IndraPlugin>()
   apply<IndraLicenseHeaderPlugin>()
 
@@ -16,10 +16,6 @@ allprojects {
 
   repositories {
     mavenCentral()
-  }
-
-  dependencies {
-    api("org.checkerframework:checker-qual:3.11.0")
   }
 
   indra {

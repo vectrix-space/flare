@@ -1,10 +1,12 @@
 name: "validate gradle wrapper"
 
-on: ["pull_request", "push"]
+on:
+  push:
+    branches:
+      - main
 
 jobs:
   build:
-    if: ${{ github.event_name != 'pull_request' || github.repository != github.event.pull_request.head.repo.full_name }}
     runs-on: "ubuntu-latest"
     steps:
       - name: "checkout repository"

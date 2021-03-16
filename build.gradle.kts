@@ -1,5 +1,6 @@
 import net.kyori.indra.IndraLicenseHeaderPlugin
 import net.kyori.indra.IndraPlugin
+import net.kyori.indra.sonatypeSnapshots
 
 plugins {
   id("net.kyori.indra") version "1.3.1"
@@ -16,6 +17,7 @@ subprojects {
 
   repositories {
     mavenCentral()
+    sonatypeSnapshots()
   }
 
   dependencies {
@@ -26,5 +28,7 @@ subprojects {
 
   indra {
     github("vectrix-space", "flare")
+
+    mitLicense()
   }
 }

@@ -1,10 +1,11 @@
-import net.kyori.indra.sonatype.IndraSonatypePublishingPlugin
+import de.marcphilipp.gradle.nexus.NexusPublishExtension
+import net.kyori.indra.IndraPublishingPlugin
 
 plugins {
-  id("net.kyori.indra.publishing.sonatype") version "1.3.1"
+  id("net.kyori.indra.publishing") version "1.3.1"
 }
 
-apply<IndraSonatypePublishingPlugin>()
+apply<IndraPublishingPlugin>()
 
 dependencies {
   api("org.checkerframework:checker-qual:3.11.0")
@@ -24,6 +25,13 @@ tasks.withType<PublishToMavenRepository>().configureEach {
 }
 
 indra {
+  extensions.configure<NexusPublishExtension> {
+    repositories.sonatype {
+      nexusUrl.set(uri("https://s01.oss.sonatype.org/service/local/"))
+      snapshotRepositoryUrl.set(uri("https://s01.oss.sonatype.org/content/repositories/snapshots/"))
+    }
+  }
+
   configurePublications {
     pom {
       developers {

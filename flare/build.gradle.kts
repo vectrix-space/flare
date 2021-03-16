@@ -1,11 +1,14 @@
 import de.marcphilipp.gradle.nexus.NexusPublishExtension
+import de.marcphilipp.gradle.nexus.NexusPublishPlugin
 import net.kyori.indra.IndraPublishingPlugin
 
 plugins {
-  id("net.kyori.indra.publishing") version "1.3.1"
+  id("net.kyori.indra.publishing")
+  id("de.marcphilipp.nexus-publish") version "0.4.0"
 }
 
 apply<IndraPublishingPlugin>()
+apply<NexusPublishPlugin>()
 
 dependencies {
   api("org.checkerframework:checker-qual:3.11.0")

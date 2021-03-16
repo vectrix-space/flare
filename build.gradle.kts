@@ -1,6 +1,5 @@
 import net.kyori.indra.IndraLicenseHeaderPlugin
 import net.kyori.indra.IndraPlugin
-import net.kyori.indra.sonatypeSnapshots
 
 plugins {
   id("net.kyori.indra") version "1.3.1"
@@ -16,8 +15,11 @@ subprojects {
   apply<IndraLicenseHeaderPlugin>()
 
   repositories {
+    mavenLocal()
     mavenCentral()
-    sonatypeSnapshots()
+    maven {
+      url = uri("https://oss.sonatype.org/content/groups/public/")
+    }
   }
 
   dependencies {

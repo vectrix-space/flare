@@ -308,7 +308,7 @@ import java.util.function.Function;
   }
 
   @SuppressWarnings({"unchecked", "rawtypes"})
-  private static class ExpungingValueImpl<V> implements SyncMap.ExpungingValue<V> {
+  private final static class ExpungingValueImpl<V> implements SyncMap.ExpungingValue<V> {
     private static final Object EXPUNGED = new Object();
     private static final AtomicReferenceFieldUpdater<ExpungingValueImpl, Object> valueUpdater =
       AtomicReferenceFieldUpdater.newUpdater(ExpungingValueImpl.class, Object.class, "value");
@@ -413,7 +413,7 @@ import java.util.function.Function;
     }
   }
 
-  private class MapEntry implements Map.Entry<K, V> {
+  private final class MapEntry implements Map.Entry<K, V> {
     private final K key;
 
     private MapEntry(final Map.@NonNull Entry<K, ExpungingValue<V>> entry) {
@@ -459,7 +459,7 @@ import java.util.function.Function;
     }
   }
 
-  private class EntrySet extends AbstractSet<Map.Entry<K, V>> {
+  private final class EntrySet extends AbstractSet<Map.Entry<K, V>> {
     @Override
     public int size() {
       return SyncMapImpl.this.size();
@@ -496,7 +496,7 @@ import java.util.function.Function;
     }
   }
 
-  private class EntryIterator implements Iterator<Map.Entry<K, V>> {
+  private final class EntryIterator implements Iterator<Map.Entry<K, V>> {
     private final Iterator<Map.Entry<K, ExpungingValue<V>>> backingIterator;
     private Map.Entry<K, V> next;
     private Map.Entry<K, V> current;

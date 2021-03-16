@@ -1,9 +1,6 @@
 name: "validate gradle wrapper"
 
-on:
-  push:
-    branches:
-      - main
+on: ["pull_request", "push"]
 
 jobs:
   build:

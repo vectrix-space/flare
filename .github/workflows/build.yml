@@ -1,9 +1,6 @@
 name: "build"
 
-on:
-  push:
-    branches:
-      - main
+on: ["pull_request", "push"]
 
 jobs:
   build:
@@ -20,3 +17,9 @@ jobs:
           java-version: "11"
       - name: "build"
         run: "./gradlew build"
+      - name: "publish"
+        if: ${{ runner.os == 'Linux' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        run: "./gradlew publish"
+        env:
+          ORG_GRADLE_PROJECT_sonatypeUsername: ${{ secrets.SONATYPE_USERNAME }}
+          ORG_GRADLE_PROJECT_sonatypePassword: ${{ secrets.SONATYPE_PASSWORD }}

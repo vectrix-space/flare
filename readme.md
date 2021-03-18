@@ -6,7 +6,7 @@ Useful thread-safe collections with performance in mind.
 ## Building
 __Note:__ If you do not have [Gradle] installed then use `./gradlew` for Unix systems or Git Bash and gradlew.bat for Windows systems in place of any 'gradle' command.
 
-In order to build Flare you simply need to run the `gradle` command. You can find the compiled JAR file in `./flare/build/libs` labeled 'flare-0.1.0-SNAPSHOT.jar'.
+In order to build Flare you simply need to run the `gradle` command. You can find the compiled JAR file in `./flare/build/libs` labeled 'flare-0.1.0.jar'.
 
 ## Dependency
 

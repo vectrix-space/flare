@@ -20,6 +20,13 @@ tasks.jar {
   )
 }
 
+signing {
+  val signingKey: String? by project
+  val signingPassword: String? by project
+  useInMemoryPgpKeys(signingKey, signingPassword)
+  sign(configurations.archives.get())
+}
+
 tasks.withType<PublishToMavenRepository>().configureEach {
   onlyIf {
     val version: String = project.version.toString()

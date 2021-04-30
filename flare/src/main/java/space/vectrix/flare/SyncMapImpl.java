@@ -58,22 +58,14 @@ import java.util.function.Function;
 
   @Override
   public int size() {
-    if(this.readAmended) {
-      synchronized(this.lock) {
-        if(this.readAmended) {
-          return this.getSize(this.dirty);
-        }
-      }
-    }
+    this.promoteIfNeeded();
     return this.getSize(this.read);
   }
 
   private int getSize(final @NonNull Map<K, ExpungingValue<V>> map) {
     int size = 0;
     for(final ExpungingValue<V> value : map.values()) {
-      if(value.exists()) {
-        size++;
-      }
+      if(value.exists()) size++;
     }
     return size;
   }
@@ -109,9 +101,7 @@ import java.util.function.Function;
     requireNonNull(value, "value");
     final ExpungingValue<V> entry = this.read.get(key);
     final V previous = entry != null ? entry.get() : null;
-    if(entry != null && entry.trySet(value)) {
-      return previous;
-    }
+    if(entry != null && entry.trySet(value)) return previous;
     return this.putDirty(key, value, false);
   }
 
@@ -179,10 +169,7 @@ import java.util.function.Function;
         }
       }
     }
-    if(!absent) {
-      entry.replace(value, null);
-    }
-    return false;
+    return !absent && entry.replace(value, null);
   }
 
   @Override
@@ -224,9 +211,7 @@ import java.util.function.Function;
     requireNonNull(value, "value");
     final ExpungingValue<V> entry = this.read.get(key);
     final V previous = entry != null ? entry.get() : null;
-    if((entry != null && entry.trySet(value)) || !this.readAmended) {
-      return previous;
-    }
+    if((entry != null && entry.trySet(value)) || !this.readAmended) return previous;
     return this.putDirty(key, value, true);
   }
 
@@ -235,16 +220,12 @@ import java.util.function.Function;
     requireNonNull(oldValue, "oldValue");
     requireNonNull(newValue, "newValue");
     ExpungingValue<V> entry = this.read.get(key);
-    if(entry != null && entry.replace(oldValue, newValue)) {
-      return true;
-    }
+    if(entry != null && entry.replace(oldValue, newValue)) return true;
     if(this.readAmended) {
       synchronized(this.lock) {
         if(this.readAmended && this.dirty != null) {
           entry = this.dirty.get(key);
-          if(entry.replace(oldValue, newValue)) {
-            return true;
-          }
+          if(entry.replace(oldValue, newValue)) return true;
         }
       }
     }
@@ -263,9 +244,7 @@ import java.util.function.Function;
 
   @Override
   public @NonNull Set<Entry<K, V>> entrySet() {
-    if(this.entrySet != null) {
-      return this.entrySet;
-    }
+    if(this.entrySet != null) return this.entrySet;
     return this.entrySet = new EntrySet();
   }
 
@@ -360,12 +339,8 @@ import java.util.function.Function;
     public boolean replace(final @NonNull Object compare, final @Nullable V newValue) {
       for(; ; ) {
         final Object value = valueUpdater.get(this);
-        if(value == EXPUNGED || !Objects.equals(value, compare)) {
-          return false;
-        }
-        if(valueUpdater.compareAndSet(this, value, newValue)) {
-          return true;
-        }
+        if(value == EXPUNGED || !Objects.equals(value, compare)) return false;
+        if(valueUpdater.compareAndSet(this, value, newValue)) return true;
       }
     }
 
@@ -373,12 +348,8 @@ import java.util.function.Function;
     public @Nullable V clear() {
       for(; ; ) {
         final Object value = valueUpdater.get(this);
-        if(value == null || value == EXPUNGED) {
-          return null;
-        }
-        if(valueUpdater.compareAndSet(this, value, null)) {
-          return (V) value;
-        }
+        if(value == null || value == EXPUNGED) return null;
+        if(valueUpdater.compareAndSet(this, value, null)) return (V) value;
       }
     }
 
@@ -386,12 +357,8 @@ import java.util.function.Function;
     public boolean trySet(final @NonNull V value) {
       for(; ; ) {
         final Object present = valueUpdater.get(this);
-        if(present == EXPUNGED) {
-          return false;
-        }
-        if(valueUpdater.compareAndSet(this, present, value)) {
-          return true;
-        }
+        if(present == EXPUNGED) return false;
+        if(valueUpdater.compareAndSet(this, present, value)) return true;
       }
     }
 
@@ -399,9 +366,7 @@ import java.util.function.Function;
     public boolean tryMarkExpunged() {
       Object value = valueUpdater.get(this);
       while(value == null) {
-        if(valueUpdater.compareAndSet(this, null, EXPUNGED)) {
-          return true;
-        }
+        if(valueUpdater.compareAndSet(this, null, EXPUNGED)) return true;
         value = valueUpdater.get(this);
       }
       return false;
@@ -421,33 +386,29 @@ import java.util.function.Function;
     }
 
     @Override
-    public K getKey() {
+    public @NonNull K getKey() {
       return this.key;
     }
 
     @Override
-    public V getValue() {
+    public @Nullable V getValue() {
       return SyncMapImpl.this.get(this.key);
     }
 
     @Override
-    public V setValue(final @NonNull V value) {
+    public @Nullable V setValue(final @NonNull V value) {
       return SyncMapImpl.this.put(this.key, value);
     }
 
     @Override
-    public String toString() {
+    public @NonNull String toString() {
       return "SyncMapImpl.MapEntry{key=" + this.getKey() + ", value=" + this.getValue() + "}";
     }
 
     @Override
     public boolean equals(final @Nullable Object other) {
-      if(this == other) {
-        return true;
-      }
-      if(!(other instanceof Map.Entry)) {
-        return false;
-      }
+      if(this == other) return true;
+      if(!(other instanceof Map.Entry)) return false;
       final Map.Entry<?, ?> that = (Map.Entry<?, ?>) other;
       return Objects.equals(this.getKey(), that.getKey())
         && Objects.equals(this.getValue(), that.getValue());
@@ -467,9 +428,7 @@ import java.util.function.Function;
 
     @Override
     public boolean contains(final @Nullable Object entry) {
-      if(!(entry instanceof Map.Entry)) {
-        return false;
-      }
+      if(!(entry instanceof Map.Entry)) return false;
       final Map.Entry<?, ?> mapEntry = (Entry<?, ?>) entry;
       final V value = SyncMapImpl.this.get(mapEntry.getKey());
       return value != null && Objects.equals(mapEntry.getValue(), value);
@@ -477,9 +436,7 @@ import java.util.function.Function;
 
     @Override
     public boolean remove(final @Nullable Object entry) {
-      if(!(entry instanceof Map.Entry)) {
-        return false;
-      }
+      if(!(entry instanceof Map.Entry)) return false;
       final Map.Entry<?, ?> mapEntry = (Entry<?, ?>) entry;
       return SyncMapImpl.this.remove(mapEntry.getKey()) != null;
     }
@@ -524,21 +481,17 @@ import java.util.function.Function;
     }
 
     @Override
-    public Map.Entry<K, V> next() {
+    public Map.@NonNull Entry<K, V> next() {
       this.current = this.next;
       final Map.Entry<K, ExpungingValue<V>> entry = this.getNextValue();
       this.next = (entry != null ? new MapEntry(entry) : null);
-      if(this.current == null) {
-        throw new NoSuchElementException();
-      }
+      if(this.current == null) throw new NoSuchElementException();
       return this.current;
     }
 
     @Override
     public void remove() {
-      if(this.current == null) {
-        return;
-      }
+      if(this.current == null) return;
       SyncMapImpl.this.remove(this.current.getKey());
     }
 

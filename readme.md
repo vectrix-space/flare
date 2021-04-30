@@ -15,7 +15,7 @@ In order to build Flare you simply need to run the `gradle` command. You can fin
 <dependency>
   <groupId>space.vectrix.flare</groupId>
   <artifactId>flare</artifactId>
-  <version>0.1.0</version>
+  <version>0.1.1</version>
 </dependency>
 ```
 
@@ -26,7 +26,7 @@ repositories {
 }
 
 dependencies {
-  compile "space.vectrix.flare:flare:0.1.0"
+  compile "space.vectrix.flare:flare:0.1.1"
 }
 ```
 

@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "space.vectrix.flare"
-version = "0.1.1-SNAPSHOT"
+version = "0.1.1"
 description = "Useful thread-safe collections with performance in mind."
 
 subprojects {

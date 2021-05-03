@@ -2,7 +2,7 @@ import net.kyori.indra.IndraLicenseHeaderPlugin
 import net.kyori.indra.IndraPlugin
 
 plugins {
-  id("net.kyori.indra") version "1.3.1"
+  id("net.kyori.indra") version "2.0.2"
   id("net.kyori.indra.license-header") version "1.3.1"
 }
 

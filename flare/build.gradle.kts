@@ -11,7 +11,7 @@ apply<IndraPublishingPlugin>()
 apply<NexusPublishPlugin>()
 
 dependencies {
-  api("org.checkerframework:checker-qual:3.12.0")
+  api("org.checkerframework:checker-qual:3.13.0")
 }
 
 tasks.jar {

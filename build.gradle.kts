@@ -1,9 +1,9 @@
-import net.kyori.indra.IndraLicenseHeaderPlugin
-import net.kyori.indra.IndraPlugin
-
 plugins {
-  id("net.kyori.indra") version "1.3.1"
-  id("net.kyori.indra.license-header") version "1.3.1"
+  id("signing")
+  id("net.kyori.indra") version "2.0.2"
+  id("net.kyori.indra.publishing") version "2.0.2" apply false
+  id("net.kyori.indra.license-header") version "2.0.2" apply false
+  id("de.marcphilipp.nexus-publish") version "0.4.0" apply false
 }
 
 group = "space.vectrix.flare"
@@ -11,8 +11,14 @@ version = "0.1.2-SNAPSHOT"
 description = "Useful thread-safe collections with performance in mind."
 
 subprojects {
-  apply<IndraPlugin>()
-  apply<IndraLicenseHeaderPlugin>()
+  apply(plugin = "net.kyori.indra")
+  apply(plugin = "net.kyori.indra.publishing")
+  apply(plugin = "net.kyori.indra.license-header")
+  apply(plugin = "de.marcphilipp.nexus-publish")
+
+  group = rootProject.group
+  version = rootProject.version
+  description = rootProject.description
 
   repositories {
     mavenLocal()
@@ -28,9 +34,36 @@ subprojects {
     testImplementation("org.junit.jupiter:junit-jupiter-engine:5.7.1")
   }
 
+  signing {
+    val signingKey: String? by project
+    val signingPassword: String? by project
+    useInMemoryPgpKeys(signingKey, signingPassword)
+    sign(configurations.archives.get())
+  }
+
   indra {
-    github("vectrix-space", "flare")
+    github("vectrix-space", "flare") {
+      ci(true)
+    }
 
     mitLicense()
+
+    configurePublications {
+      pom {
+        developers {
+          developer {
+            id.set("VectrixDevelops")
+            name.set("Vectrix")
+          }
+        }
+      }
+    }
+  }
+
+  tasks.withType<PublishToMavenRepository>().configureEach {
+    onlyIf {
+      val version: String = project.version.toString()
+      System.getenv("CI") == null || version.endsWith("-SNAPSHOT")
+    }
   }
 }

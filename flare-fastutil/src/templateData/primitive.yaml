@@ -1,0 +1,21 @@
+variants:
+  int:
+    k: int # primitive
+    KT: Integer # wrapper
+    K: Int # Abbreviation
+    G: ints # Group Abbreviation
+  long:
+    k: long # primitive
+    KT: Long # wrapper
+    K: Long # Abbreviation
+    G: longs # Group Abbreviation
+  float:
+    k: float # primitive
+    KT: Float # wrapper
+    K: Float # Abbreviation
+    G: floats # Group Abbreviation
+  double:
+    k: double # primitive
+    KT: Double # wrapper
+    K: Double # Abbreviation
+    G: doubles # Group Abbreviation

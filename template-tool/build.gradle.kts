@@ -19,7 +19,7 @@ dependencies {
 
 gradlePlugin {
   plugins {
-    creating {
+    create("flare-templates") {
       id = "flare-templates"
       implementationClass = "space.vectrix.flare.templates.TemplateGeneratorPlugin"
     }

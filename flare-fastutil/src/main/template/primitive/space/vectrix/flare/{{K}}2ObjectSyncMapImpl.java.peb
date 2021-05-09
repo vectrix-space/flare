@@ -1,56 +1,37 @@
-/*
- * This file is part of flare, licensed under the MIT License (MIT).
- *
- * Copyright (c) vectrix.space <https://vectrix.space/>
- * Copyright (c) contributors
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- */
-package space.vectrix.flare;
+package space.vectrix.flare.fastutil;
 
 import static java.util.Objects.requireNonNull;
 
+import it.unimi.dsi.fastutil.{{ G }}.Abstract{{ K }}2ObjectMap;
+import it.unimi.dsi.fastutil.{{ G }}.{{ K }}2ObjectMap;
+import it.unimi.dsi.fastutil.{{ G }}.{{ K }}2ObjectMaps;
+import it.unimi.dsi.fastutil.objects.AbstractObjectSet;
+import it.unimi.dsi.fastutil.objects.ObjectIterator;
+import it.unimi.dsi.fastutil.objects.ObjectSet;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.AbstractMap;
-import java.util.AbstractSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.function.Consumer;
 import java.util.function.IntFunction;
 
-/* package */ final class SyncMapImpl<K, V> extends AbstractMap<K, V> implements SyncMap<K, V> {
+/* package */ final class {{ K }}2ObjectSyncMapImpl<V> extends Abstract{{ K }}2ObjectMap<V> implements {{ K }}2ObjectSyncMap<V> {
+  private static final long serialVersionUID = 1;
   private final Object lock = new Object();
-  private final IntFunction<Map<K, ExpungingValue<V>>> function;
+  private final IntFunction<{{ K }}2ObjectMap<ExpungingValue<V>>> function;
   private final int initialCapacity;
-  private volatile Map<K, ExpungingValue<V>> read;
+  private volatile {{ K }}2ObjectMap<ExpungingValue<V>> read;
   private volatile boolean readAmended;
   private int readMisses;
-  private Map<K, ExpungingValue<V>> dirty;
+  private {{ K }}2ObjectMap<ExpungingValue<V>> dirty;
   private EntrySet entrySet;
 
-  /* package */ SyncMapImpl(final @NonNull IntFunction<Map<K, ExpungingValue<V>>> function, final int initialCapacity) {
+  /* package */ {{ K }}2ObjectSyncMapImpl(final @NonNull IntFunction<{{ K }}2ObjectMap<ExpungingValue<V>>> function, final int initialCapacity) {
     this.function = function;
     this.read = function.apply(initialCapacity);
     this.initialCapacity = initialCapacity;
@@ -62,7 +43,7 @@ import java.util.function.IntFunction;
     return this.getSize(this.read);
   }
 
-  private int getSize(final @NonNull Map<K, ExpungingValue<V>> map) {
+  private int getSize(final @NonNull {{ K }}2ObjectMap<ExpungingValue<V>> map) {
     int size = 0;
     for(final ExpungingValue<V> value : map.values()) {
       if(value.exists()) size++;
@@ -70,8 +51,7 @@ import java.util.function.IntFunction;
     return size;
   }
 
-  @SuppressWarnings("SuspiciousMethodCalls")
-  private @Nullable ExpungingValue<V> getValue(final @Nullable Object key) {
+  private @Nullable ExpungingValue<V> getValue(final {{ k }} key) {
     ExpungingValue<V> entry = this.read.get(key);
     if(entry == null && this.readAmended) {
       synchronized(this.lock) {
@@ -85,19 +65,19 @@ import java.util.function.IntFunction;
   }
 
   @Override
-  public boolean containsKey(final @Nullable Object key) {
+  public boolean containsKey(final {{ k }} key) {
     final ExpungingValue<V> entry = this.getValue(key);
     return entry != null && entry.exists();
   }
 
   @Override
-  public V get(final @Nullable Object key) {
+  public V get(final {{ k }} key) {
     final ExpungingValue<V> entry = this.getValue(key);
     return entry != null ? entry.get() : null;
   }
 
   @Override
-  public V put(final @Nullable K key, final @NonNull V value) {
+  public V put(final {{ k }} key, final @NonNull V value) {
     requireNonNull(value, "value");
     final ExpungingValue<V> entry = this.read.get(key);
     final V previous = entry != null ? entry.get() : null;
@@ -105,7 +85,7 @@ import java.util.function.IntFunction;
     return this.putDirty(key, value, false);
   }
 
-  private V putDirty(final @Nullable K key, final @NonNull V value, final boolean present) {
+  private V putDirty(final {{ k }} key, final @NonNull V value, final boolean present) {
     ExpungingValue<V> entry;
     V previous = null;
     synchronized(this.lock) {
@@ -140,7 +120,7 @@ import java.util.function.IntFunction;
 
   @Override
   @SuppressWarnings("SuspiciousMethodCalls")
-  public V remove(final @Nullable Object key) {
+  public V remove(final {{ k }} key) {
     ExpungingValue<V> entry = this.read.get(key);
     if(entry == null && this.readAmended) {
       synchronized(this.lock) {
@@ -154,7 +134,7 @@ import java.util.function.IntFunction;
 
   @Override
   @SuppressWarnings("SuspiciousMethodCalls")
-  public boolean remove(final @Nullable Object key, final @NonNull Object value) {
+  public boolean remove(final {{ k }} key, final @NonNull Object value) {
     requireNonNull(value, "value");
     ExpungingValue<V> entry = this.read.get(key);
     boolean absent = entry == null;
@@ -173,7 +153,7 @@ import java.util.function.IntFunction;
   }
 
   @Override
-  public V putIfAbsent(final @Nullable K key, final @NonNull V value) {
+  public V putIfAbsent(final {{ k }} key, final @NonNull V value) {
     requireNonNull(value, "value");
     ExpungingValue<V> entry = this.read.get(key);
     Map.Entry<Boolean, V> result = null;
@@ -207,7 +187,7 @@ import java.util.function.IntFunction;
   }
 
   @Override
-  public V replace(final @Nullable K key, final @NonNull V value) {
+  public V replace(final {{ k }} key, final @NonNull V value) {
     requireNonNull(value, "value");
     final ExpungingValue<V> entry = this.read.get(key);
     final V previous = entry != null ? entry.get() : null;
@@ -216,7 +196,7 @@ import java.util.function.IntFunction;
   }
 
   @Override
-  public boolean replace(final @Nullable K key, final @NonNull V oldValue, final @NonNull V newValue) {
+  public boolean replace(final {{ k }} key, final @NonNull V oldValue, final @NonNull V newValue) {
     requireNonNull(oldValue, "oldValue");
     requireNonNull(newValue, "newValue");
     ExpungingValue<V> entry = this.read.get(key);
@@ -243,7 +223,7 @@ import java.util.function.IntFunction;
   }
 
   @Override
-  public @NonNull Set<Entry<K, V>> entrySet() {
+  public @NonNull ObjectSet<Entry<V>> {{ k }}2ObjectEntrySet() {
     if(this.entrySet != null) return this.entrySet;
     return this.entrySet = new EntrySet();
   }
@@ -278,16 +258,16 @@ import java.util.function.IntFunction;
   private void dirtyLocked() {
     if(this.dirty == null) {
       this.dirty = this.function.apply(this.read.size());
-      for(final Map.Entry<K, ExpungingValue<V>> entry : this.read.entrySet()) {
+      {{ K }}2ObjectMaps.fastForEach(this.read, (entry) -> {
         if(!entry.getValue().tryMarkExpunged()) {
-          this.dirty.put(entry.getKey(), entry.getValue());
+          this.dirty.put(entry.get{{ K }}Key(), entry.getValue());
         }
-      }
+      });
     }
   }
 
   @SuppressWarnings({"unchecked", "rawtypes"})
-  private final static class ExpungingValueImpl<V> implements SyncMap.ExpungingValue<V> {
+  private final static class ExpungingValueImpl<V> implements {{ K }}2ObjectSyncMap.ExpungingValue<V> {
     private static final Object EXPUNGED = new Object();
     private static final AtomicReferenceFieldUpdater<ExpungingValueImpl, Object> valueUpdater =
       AtomicReferenceFieldUpdater.newUpdater(ExpungingValueImpl.class, Object.class, "value");
@@ -304,7 +284,7 @@ import java.util.function.IntFunction;
     }
 
     @Override
-    public @NonNull Entry<Boolean, V> putIfAbsent(final @NonNull V value) {
+    public Map.@NonNull Entry<Boolean, V> putIfAbsent(final @NonNull V value) {
       for(; ; ) {
         final Object previous = valueUpdater.get(this);
         if(previous == EXPUNGED) {
@@ -378,31 +358,31 @@ import java.util.function.IntFunction;
     }
   }
 
-  private final class MapEntry implements Map.Entry<K, V> {
-    private final K key;
+  private final class MapEntry implements {{ K }}2ObjectMap.Entry<V> {
+    private final {{ k }} key;
 
-    private MapEntry(final Map.@NonNull Entry<K, ExpungingValue<V>> entry) {
-      this.key = entry.getKey();
+    private MapEntry(final {{ K }}2ObjectMap.@NonNull Entry<ExpungingValue<V>> entry) {
+      this.key = entry.get{{ K }}Key();
     }
 
     @Override
-    public @NonNull K getKey() {
+    public {{ k }} get{{ K }}Key() {
       return this.key;
     }
 
     @Override
     public @Nullable V getValue() {
-      return SyncMapImpl.this.get(this.key);
+      return {{ K }}2ObjectSyncMapImpl.this.get(this.key);
     }
 
     @Override
     public @Nullable V setValue(final @NonNull V value) {
-      return SyncMapImpl.this.put(this.key, value);
+      return {{ K }}2ObjectSyncMapImpl.this.put(this.key, value);
     }
 
     @Override
     public @NonNull String toString() {
-      return "SyncMapImpl.MapEntry{key=" + this.getKey() + ", value=" + this.getValue() + "}";
+      return "{{ K }}2ObjectSyncMapImpl.MapEntry{key=" + this.get{{ K }}Key() + ", value=" + this.getValue() + "}";
     }
 
     @Override
@@ -410,62 +390,62 @@ import java.util.function.IntFunction;
       if(this == other) return true;
       if(!(other instanceof Map.Entry)) return false;
       final Map.Entry<?, ?> that = (Map.Entry<?, ?>) other;
-      return Objects.equals(this.getKey(), that.getKey())
+      return Objects.equals(this.get{{ K }}Key(), that.getKey())
         && Objects.equals(this.getValue(), that.getValue());
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(this.getKey(), this.getValue());
+      return Objects.hash(this.get{{ K }}Key(), this.getValue());
     }
   }
 
-  private final class EntrySet extends AbstractSet<Map.Entry<K, V>> {
+  private final class EntrySet extends AbstractObjectSet<{{ K }}2ObjectMap.Entry<V>> {
     @Override
     public int size() {
-      return SyncMapImpl.this.size();
+      return {{ K }}2ObjectSyncMapImpl.this.size();
     }
 
     @Override
     public boolean contains(final @Nullable Object entry) {
-      if(!(entry instanceof Map.Entry)) return false;
-      final Map.Entry<?, ?> mapEntry = (Entry<?, ?>) entry;
-      final V value = SyncMapImpl.this.get(mapEntry.getKey());
+      if(!(entry instanceof {{ K }}2ObjectMap.Entry)) return false;
+      final {{ K }}2ObjectMap.Entry<?> mapEntry = ({{ K }}2ObjectMap.Entry<?>) entry;
+      final V value = {{ K }}2ObjectSyncMapImpl.this.get(mapEntry.get{{ K }}Key());
       return value != null && Objects.equals(mapEntry.getValue(), value);
     }
 
     @Override
     public boolean remove(final @Nullable Object entry) {
-      if(!(entry instanceof Map.Entry)) return false;
-      final Map.Entry<?, ?> mapEntry = (Entry<?, ?>) entry;
-      return SyncMapImpl.this.remove(mapEntry.getKey()) != null;
+      if(!(entry instanceof {{ K }}2ObjectMap.Entry)) return false;
+      final {{ K }}2ObjectMap.Entry<?> mapEntry = ({{ K }}2ObjectMap.Entry<?>) entry;
+      return {{ K }}2ObjectSyncMapImpl.this.remove(mapEntry.get{{ K }}Key()) != null;
     }
 
     @Override
     public void clear() {
-      SyncMapImpl.this.clear();
+      {{ K }}2ObjectSyncMapImpl.this.clear();
     }
 
     @Override
-    public @NonNull Iterator<Map.Entry<K, V>> iterator() {
-      SyncMapImpl.this.promoteIfNeeded();
-      return new EntryIterator(SyncMapImpl.this.read.entrySet().iterator());
+    public @NonNull ObjectIterator<{{ K }}2ObjectMap.Entry<V>> iterator() {
+      {{ K }}2ObjectSyncMapImpl.this.promoteIfNeeded();
+      return new EntryIterator({{ K }}2ObjectSyncMapImpl.this.read.{{ k }}2ObjectEntrySet().iterator());
     }
   }
 
-  private final class EntryIterator implements Iterator<Map.Entry<K, V>> {
-    private final Iterator<Map.Entry<K, ExpungingValue<V>>> backingIterator;
-    private Map.Entry<K, V> next;
-    private Map.Entry<K, V> current;
+  private final class EntryIterator implements ObjectIterator<{{ K }}2ObjectMap.Entry<V>> {
+    private final Iterator<{{ K }}2ObjectMap.Entry<ExpungingValue<V>>> backingIterator;
+    private {{ K }}2ObjectMap.Entry<V> next;
+    private {{ K }}2ObjectMap.Entry<V> current;
 
-    private EntryIterator(final @NonNull Iterator<Map.Entry<K, ExpungingValue<V>>> backingIterator) {
+    private EntryIterator(final @NonNull Iterator<{{ K }}2ObjectMap.Entry<ExpungingValue<V>>> backingIterator) {
       this.backingIterator = backingIterator;
-      final Map.Entry<K, ExpungingValue<V>> entry = this.getNextValue();
+      final {{ K }}2ObjectMap.Entry<ExpungingValue<V>> entry = this.getNextValue();
       this.next = (entry != null ? new MapEntry(entry) : null);
     }
 
-    private Map.Entry<K, ExpungingValue<V>> getNextValue() {
-      Map.Entry<K, ExpungingValue<V>> entry = null;
+    private {{ K }}2ObjectMap.Entry<ExpungingValue<V>> getNextValue() {
+      {{ K }}2ObjectMap.Entry<ExpungingValue<V>> entry = null;
       while(this.backingIterator.hasNext() && entry == null) {
         final ExpungingValue<V> value = (entry = this.backingIterator.next()).getValue();
         if(!value.exists()) {
@@ -481,9 +461,9 @@ import java.util.function.IntFunction;
     }
 
     @Override
-    public Map.@NonNull Entry<K, V> next() {
+    public {{ K }}2ObjectMap.@NonNull Entry<V> next() {
       this.current = this.next;
-      final Map.Entry<K, ExpungingValue<V>> entry = this.getNextValue();
+      final {{ K }}2ObjectMap.Entry<ExpungingValue<V>> entry = this.getNextValue();
       this.next = (entry != null ? new MapEntry(entry) : null);
       if(this.current == null) throw new NoSuchElementException();
       return this.current;
@@ -492,11 +472,11 @@ import java.util.function.IntFunction;
     @Override
     public void remove() {
       if(this.current == null) return;
-      SyncMapImpl.this.remove(this.current.getKey());
+      {{ K }}2ObjectSyncMapImpl.this.remove(this.current.get{{ K }}Key());
     }
 
     @Override
-    public void forEachRemaining(final @NonNull Consumer<? super Map.Entry<K, V>> action) {
+    public void forEachRemaining(final @NonNull Consumer<? super {{ K }}2ObjectMap.Entry<V>> action) {
       if(this.next != null) action.accept(this.next);
       this.backingIterator.forEachRemaining(entry -> {
         if(entry.getValue().exists()) {

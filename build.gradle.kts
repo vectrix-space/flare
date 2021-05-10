@@ -1,3 +1,5 @@
+import de.marcphilipp.gradle.nexus.NexusPublishExtension
+
 plugins {
   id("signing")
   id("net.kyori.indra") version "2.0.2"
@@ -47,6 +49,13 @@ subprojects {
     }
 
     mitLicense()
+
+    extensions.configure<NexusPublishExtension> {
+      repositories.sonatype {
+        nexusUrl.set(uri("https://s01.oss.sonatype.org/service/local/"))
+        snapshotRepositoryUrl.set(uri("https://s01.oss.sonatype.org/content/repositories/snapshots/"))
+      }
+    }
 
     configurePublications {
       pom {

@@ -35,7 +35,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
-import space.vectrix.test.Testing;
+import space.vectrix.test.SyncTesting;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -528,22 +528,22 @@ class SyncMapTest {
   @RepeatedTest(5)
   public void testConcurrency() throws InterruptedException {
     final SyncMap<Integer, Boolean> map = SyncMap.hashmap();
-    Testing.assertConcurrent("put tasks", Lists.newArrayList(
+    SyncTesting.assertConcurrent("put tasks", Lists.newArrayList(
       () -> IntStream.range(0, 500).forEach(number -> map.put(number, Boolean.TRUE)),
       () -> IntStream.range(250, 750).forEach(number -> map.put(number, Boolean.TRUE)),
       () -> IntStream.range(500, 1000).forEach(number -> map.put(number, Boolean.TRUE))
     ), 5);
-    Testing.assertConcurrent("remove tasks", Lists.newArrayList(
+    SyncTesting.assertConcurrent("remove tasks", Lists.newArrayList(
       () -> IntStream.range(0, 500).forEach(number -> map.remove(number, Boolean.TRUE)),
       () -> IntStream.range(250, 750).forEach(number -> map.remove(number, Boolean.TRUE)),
       () -> IntStream.range(500, 1000).forEach(number -> map.remove(number, Boolean.TRUE))
     ), 5);
-    Testing.assertConcurrent("putIfAbsent tasks", Lists.newArrayList(
+    SyncTesting.assertConcurrent("putIfAbsent tasks", Lists.newArrayList(
       () -> IntStream.range(0, 500).forEach(number -> map.putIfAbsent(number, Boolean.TRUE)),
       () -> IntStream.range(250, 750).forEach(number -> map.putIfAbsent(number, Boolean.TRUE)),
       () -> IntStream.range(500, 1000).forEach(number -> map.putIfAbsent(number, Boolean.TRUE))
     ), 5);
-    Testing.assertConcurrent("get tasks", Lists.newArrayList(
+    SyncTesting.assertConcurrent("get tasks", Lists.newArrayList(
       () -> IntStream.range(0, 500).forEach(number -> map.get(number)),
       () -> IntStream.range(250, 750).forEach(number -> map.get(number)),
       () -> IntStream.range(500, 1000).forEach(number -> map.get(number))

@@ -34,7 +34,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-public final class Testing {
+public final class SyncTesting {
   // From https://github.com/junit-team/junit4/wiki/Multithreaded-code-and-concurrency
   public static void assertConcurrent(final String message, final List<? extends Runnable> tasks, final int maximumTimeout) throws InterruptedException {
     final int numThreads = tasks.size();

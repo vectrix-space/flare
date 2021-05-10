@@ -16,6 +16,12 @@ sourceSets {
       variants("int", "long", "float", "double")
     }
   }
+  test {
+    templates.templateSets.register("primitive") {
+      dataFiles.from(files("src/templateData/primitive.yaml"))
+      variants("int", "long", "float", "double")
+    }
+  }
 }
 
 tasks {
@@ -23,6 +29,10 @@ tasks {
     manifest.attributes(
       "Automatic-Module-Name" to "space.vectrix.flare.fastutil"
     )
+  }
+
+  withType(JavaCompile::class) {
+    options.compilerArgs.add("-Xlint:-cast") // Skip cast warnings, the generated source is most likely just overly safe.
   }
 
   withType(GenerateTemplates::class) {

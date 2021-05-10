@@ -4,18 +4,30 @@ variants:
     KT: Integer # wrapper
     K: Int # Abbreviation
     G: ints # Group Abbreviation
+    TestFoo: 0
+    TestBar: 1
+    TestBaz: 2
   long:
     k: long # primitive
     KT: Long # wrapper
     K: Long # Abbreviation
     G: longs # Group Abbreviation
+    TestFoo: 0L
+    TestBar: 1L
+    TestBaz: 2L
   float:
     k: float # primitive
     KT: Float # wrapper
     K: Float # Abbreviation
     G: floats # Group Abbreviation
+    TestFoo: 0.0F
+    TestBar: 1.0F
+    TestBaz: 2.0F
   double:
     k: double # primitive
     KT: Double # wrapper
     K: Double # Abbreviation
     G: doubles # Group Abbreviation
+    TestFoo: 0.0D
+    TestBar: 1.0D
+    TestBaz: 2.0D

@@ -33,7 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import org.junit.jupiter.api.RepeatedTest;
+import net.jodah.concurrentunit.Waiter;
 import org.junit.jupiter.api.Test;
 import space.vectrix.test.SyncTesting;
 
@@ -44,9 +44,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Random;
 import java.util.Set;
 import java.util.Spliterator;
-import java.util.stream.IntStream;
+import java.util.concurrent.atomic.AtomicInteger;
 
 class SyncMapTest {
   @Test
@@ -268,7 +269,7 @@ class SyncMapTest {
     final SyncMap<String, String> map = SyncMap.hashmap();
     map.put("foo", "bar");
     map.put("abc", "123");
-    assertEquals(2, map.size());
+    assertFalse(map.remove("foo", "123"));
     assertEquals("bar", map.remove("foo"));
     assertTrue(map.remove("abc", "123"));
     assertNull(map.get("foo"));
@@ -525,30 +526,32 @@ class SyncMapTest {
     assertEquals(4, map.size());
   }
 
-  @RepeatedTest(5)
-  public void testConcurrency() throws InterruptedException {
+  @Test
+  public void testConcurrentPutRemove() throws Throwable {
     final SyncMap<Integer, Boolean> map = SyncMap.hashmap();
-    SyncTesting.assertConcurrent("put tasks", Lists.newArrayList(
-      () -> IntStream.range(0, 500).forEach(number -> map.put(number, Boolean.TRUE)),
-      () -> IntStream.range(250, 750).forEach(number -> map.put(number, Boolean.TRUE)),
-      () -> IntStream.range(500, 1000).forEach(number -> map.put(number, Boolean.TRUE))
-    ), 5);
-    SyncTesting.assertConcurrent("remove tasks", Lists.newArrayList(
-      () -> IntStream.range(0, 500).forEach(number -> map.remove(number, Boolean.TRUE)),
-      () -> IntStream.range(250, 750).forEach(number -> map.remove(number, Boolean.TRUE)),
-      () -> IntStream.range(500, 1000).forEach(number -> map.remove(number, Boolean.TRUE))
-    ), 5);
-    SyncTesting.assertConcurrent("putIfAbsent tasks", Lists.newArrayList(
-      () -> IntStream.range(0, 500).forEach(number -> map.putIfAbsent(number, Boolean.TRUE)),
-      () -> IntStream.range(250, 750).forEach(number -> map.putIfAbsent(number, Boolean.TRUE)),
-      () -> IntStream.range(500, 1000).forEach(number -> map.putIfAbsent(number, Boolean.TRUE))
-    ), 5);
-    SyncTesting.assertConcurrent("get tasks", Lists.newArrayList(
-      () -> IntStream.range(0, 500).forEach(number -> map.get(number)),
-      () -> IntStream.range(250, 750).forEach(number -> map.get(number)),
-      () -> IntStream.range(500, 1000).forEach(number -> map.get(number))
-    ), 5);
-    assertEquals(1000, map.size());
+    final Waiter waiter = new Waiter();
+    final AtomicInteger counter = new AtomicInteger();
+
+    final int threadCount = 50;
+    SyncTesting.threadedRun(threadCount, () -> {
+      try {
+        final Random shouldPut = new Random();
+        for(int i = 0; i < 1_000_000; i++) {
+          int value = counter.get();
+          if(shouldPut.nextBoolean()) {
+            map.put(value, Boolean.TRUE);
+          } else {
+            map.remove(value);
+          }
+        }
+      } catch (final Exception exception) {
+        waiter.fail(exception);
+      }
+
+      waiter.resume();
+    });
+
+    waiter.await(100_000, threadCount);
   }
 
   private Map.Entry<String, String> exampleEntry(final String key, final String value) {

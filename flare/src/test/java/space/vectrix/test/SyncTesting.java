@@ -24,45 +24,14 @@
  */
 package space.vectrix.test;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-
 public final class SyncTesting {
-  // From https://github.com/junit-team/junit4/wiki/Multithreaded-code-and-concurrency
-  public static void assertConcurrent(final String message, final List<? extends Runnable> tasks, final int maximumTimeout) throws InterruptedException {
-    final int numThreads = tasks.size();
-    final List<Throwable> exceptions = Collections.synchronizedList(new ArrayList<>());
-    final ExecutorService threadPool = Executors.newFixedThreadPool(numThreads);
-    try {
-      final CountDownLatch allExecutorThreadsReady = new CountDownLatch(numThreads);
-      final CountDownLatch afterInitBlocker = new CountDownLatch(1);
-      final CountDownLatch allDone = new CountDownLatch(numThreads);
-      for(final Runnable submittedTestRunnable : tasks) {
-        threadPool.submit(() -> {
-          allExecutorThreadsReady.countDown();
-          try {
-            afterInitBlocker.await();
-            submittedTestRunnable.run();
-          } catch(final Throwable e) {
-            exceptions.add(e);
-          } finally {
-            allDone.countDown();
-          }
-        });
-      }
-      assertTrue(allExecutorThreadsReady.await(tasks.size() * 10L, TimeUnit.MILLISECONDS), "Timeout initializing threads! Perform long lasting initializations before passing runnables to assertConcurrent");
-      afterInitBlocker.countDown();
-      assertTrue(allDone.await(maximumTimeout, TimeUnit.SECONDS), message + " timeout! More than" + maximumTimeout + "seconds");
-    } finally {
-      threadPool.shutdownNow();
-    }
-    assertTrue(exceptions.isEmpty(), message + "failed with exception(s)" + exceptions);
+  public static void threadedRun(int threadCount, Runnable runnable) {
+    Thread[] threads = new Thread[threadCount];
+
+    for (int i = 0; i < threadCount; i++)
+      threads[i] = new Thread(runnable);
+
+    for (int i = 0; i < threadCount; i++)
+      threads[i].start();
   }
 }

@@ -157,19 +157,23 @@ import java.util.function.IntFunction;
   public boolean remove(final @Nullable Object key, final @NonNull Object value) {
     requireNonNull(value, "value");
     ExpungingValue<V> entry = this.read.get(key);
-    boolean absent = entry == null;
-    if(absent && this.readAmended) {
+    if(entry == null && this.readAmended) {
       synchronized(this.lock) {
-        if(this.readAmended && (absent = (entry = this.read.get(key)) == null) && this.dirty != null) {
-          absent = (entry = this.dirty.get(key)) == null;
-          if(!absent && entry.replace(value, null)) {
-            this.dirty.remove(key);
-            return true;
+        if(this.readAmended && (entry = this.read.get(key)) == null && this.dirty != null) {
+          if((entry = this.dirty.get(key)) != null && entry.replace(value, null)) {
+            entry = this.dirty.remove(key);
+          } else {
+            entry = null;
           }
+          // The slow path should be avoided, even if the value does
+          // not match or is present. So we mark a miss, to eventually
+          // promote and take a faster path.
+          this.missLocked();
+          return entry != null;
         }
       }
     }
-    return !absent && entry.replace(value, null);
+    return entry != null && entry.replace(value, null);
   }
 
   @Override

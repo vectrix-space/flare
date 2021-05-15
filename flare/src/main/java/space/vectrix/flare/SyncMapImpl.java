@@ -77,6 +77,9 @@ import java.util.function.IntFunction;
       synchronized(this.lock) {
         if(this.readAmended && (entry = this.read.get(key)) == null && this.dirty != null) {
           entry = this.dirty.get(key);
+          // The slow path should be avoided, even if the value does
+          // not match or is present. So we mark a miss, to eventually
+          // promote and take a faster path.
           this.missLocked();
         }
       }
@@ -121,6 +124,7 @@ import java.util.function.IntFunction;
         if(entry != null) {
           previous = entry.get();
           entry.set(value);
+          this.missLocked();
         } else if(!present) {
           if(!this.readAmended) {
             this.dirtyLocked();
@@ -146,6 +150,10 @@ import java.util.function.IntFunction;
       synchronized(this.lock) {
         if(this.readAmended && (entry = this.read.get(key)) == null && this.dirty != null) {
           entry = this.dirty.remove(key);
+          // The slow path should be avoided, even if the value does
+          // not match or is present. So we mark a miss, to eventually
+          // promote and take a faster path.
+          this.missLocked();
         }
       }
     }
@@ -196,6 +204,7 @@ import java.util.function.IntFunction;
         entry = this.dirty != null ? this.dirty.get(key) : null;
         if(entry != null) {
           result = entry.putIfAbsent(value);
+          this.missLocked();
         } else {
           if(!this.readAmended) {
             this.dirtyLocked();
@@ -229,7 +238,14 @@ import java.util.function.IntFunction;
       synchronized(this.lock) {
         if(this.readAmended && this.dirty != null) {
           entry = this.dirty.get(key);
-          if(entry.replace(oldValue, newValue)) return true;
+          if(!entry.replace(oldValue, newValue)) {
+            entry = null;
+          }
+          // The slow path should be avoided, even if the value does
+          // not match or is present. So we mark a miss, to eventually
+          // promote and take a faster path.
+          this.missLocked();
+          return entry != null;
         }
       }
     }

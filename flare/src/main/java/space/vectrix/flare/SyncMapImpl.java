@@ -237,8 +237,7 @@ import java.util.function.IntFunction;
     if(this.readAmended) {
       synchronized(this.lock) {
         if(this.readAmended && this.dirty != null) {
-          entry = this.dirty.get(key);
-          if(!entry.replace(oldValue, newValue)) {
+          if((entry = this.dirty.get(key)) != null && !entry.replace(oldValue, newValue)) {
             entry = null;
           }
           // The slow path should be avoided, even if the value does

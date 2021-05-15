@@ -233,10 +233,9 @@ import java.util.function.IntFunction;
     requireNonNull(oldValue, "oldValue");
     requireNonNull(newValue, "newValue");
     ExpungingValue<V> entry = this.read.get(key);
-    if(entry != null && entry.replace(oldValue, newValue)) return true;
-    if(this.readAmended) {
+    if(entry == null && this.readAmended) {
       synchronized(this.lock) {
-        if(this.readAmended && this.dirty != null) {
+        if(this.readAmended && (entry = this.read.get(key)) == null && this.dirty != null) {
           if((entry = this.dirty.get(key)) != null && !entry.replace(oldValue, newValue)) {
             entry = null;
           }
@@ -248,7 +247,7 @@ import java.util.function.IntFunction;
         }
       }
     }
-    return false;
+    return entry != null && entry.replace(oldValue, newValue);
   }
 
   @Override

@@ -2,7 +2,7 @@ import de.marcphilipp.gradle.nexus.NexusPublishExtension
 
 plugins {
   id("signing")
-  id("net.kyori.indra") version "2.0.2"
+  id("net.kyori.indra") version "2.0.4"
   id("net.kyori.indra.publishing") version "2.0.2" apply false
   id("net.kyori.indra.license-header") version "2.0.3" apply false
   id("de.marcphilipp.nexus-publish") version "0.4.0" apply false

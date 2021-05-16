@@ -24,7 +24,15 @@
  */
 package space.vectrix.test;
 
-public final class SyncTesting {
+public final class TestHelper {
+  /**
+   * Execute the code in {@code runnable} on a new thread
+   * for {@code threadCount}.
+   *
+   * @param threadCount the amount of threads
+   * @param runnable the function to execute
+   * @since 0.2.0
+   */
   public static void threadedRun(int threadCount, Runnable runnable) {
     Thread[] threads = new Thread[threadCount];
 

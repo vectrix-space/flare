@@ -55,8 +55,11 @@ import java.util.function.IntFunction;
     ExpungingValue<V> entry = this.read.get(key);
     if(entry == null && this.readAmended) {
       synchronized(this.lock) {
-        if(this.readAmended && (entry = this.read.get(key)) == null && this.dirty != null) {
+        if((entry = this.read.get(key)) == null && this.readAmended && this.dirty != null) {
           entry = this.dirty.get(key);
+          // The slow path should be avoided, even if the value does
+          // not match or is present. So we mark a miss, to eventually
+          // promote and take a faster path.
           this.missLocked();
         }
       }
@@ -101,6 +104,7 @@ import java.util.function.IntFunction;
         if(entry != null) {
           previous = entry.get();
           entry.set(value);
+          this.missLocked();
         } else if(!present) {
           if(!this.readAmended) {
             this.dirtyLocked();
@@ -124,8 +128,12 @@ import java.util.function.IntFunction;
     ExpungingValue<V> entry = this.read.get(key);
     if(entry == null && this.readAmended) {
       synchronized(this.lock) {
-        if(this.readAmended && (entry = this.read.get(key)) == null && this.dirty != null) {
+        if((entry = this.read.get(key)) == null && this.readAmended && this.dirty != null) {
           entry = this.dirty.remove(key);
+          // The slow path should be avoided, even if the value does
+          // not match or is present. So we mark a miss, to eventually
+          // promote and take a faster path.
+          this.missLocked();
         }
       }
     }
@@ -137,19 +145,23 @@ import java.util.function.IntFunction;
   public boolean remove(final {{ k }} key, final @NonNull Object value) {
     requireNonNull(value, "value");
     ExpungingValue<V> entry = this.read.get(key);
-    boolean absent = entry == null;
-    if(absent && this.readAmended) {
+    if(entry == null && this.readAmended) {
       synchronized(this.lock) {
-        if(this.readAmended && (absent = (entry = this.read.get(key)) == null) && this.dirty != null) {
-          absent = (entry = this.dirty.get(key)) == null;
-          if(!absent && entry.replace(value, null)) {
-            this.dirty.remove(key);
-            return true;
+        if((entry = this.read.get(key)) == null && this.readAmended && this.dirty != null) {
+          if((entry = this.dirty.get(key)) != null && entry.replace(value, null)) {
+            entry = this.dirty.remove(key);
+          } else {
+            entry = null;
           }
+          // The slow path should be avoided, even if the value does
+          // not match or is present. So we mark a miss, to eventually
+          // promote and take a faster path.
+          this.missLocked();
+          return entry != null;
         }
       }
     }
-    return !absent && entry.replace(value, null);
+    return entry != null && entry.replace(value, null);
   }
 
   @Override
@@ -172,6 +184,7 @@ import java.util.function.IntFunction;
         entry = this.dirty != null ? this.dirty.get(key) : null;
         if(entry != null) {
           result = entry.putIfAbsent(value);
+          this.missLocked();
         } else {
           if(!this.readAmended) {
             this.dirtyLocked();
@@ -200,16 +213,21 @@ import java.util.function.IntFunction;
     requireNonNull(oldValue, "oldValue");
     requireNonNull(newValue, "newValue");
     ExpungingValue<V> entry = this.read.get(key);
-    if(entry != null && entry.replace(oldValue, newValue)) return true;
-    if(this.readAmended) {
+    if(entry == null && this.readAmended) {
       synchronized(this.lock) {
-        if(this.readAmended && this.dirty != null) {
-          entry = this.dirty.get(key);
-          if(entry.replace(oldValue, newValue)) return true;
+        if((entry = this.read.get(key)) == null && this.readAmended && this.dirty != null) {
+          if((entry = this.dirty.get(key)) != null && !entry.replace(oldValue, newValue)) {
+            entry = null;
+          }
+          // The slow path should be avoided, even if the value does
+          // not match or is present. So we mark a miss, to eventually
+          // promote and take a faster path.
+          this.missLocked();
+          return entry != null;
         }
       }
     }
-    return false;
+    return entry != null && entry.replace(oldValue, newValue);
   }
 
   @Override

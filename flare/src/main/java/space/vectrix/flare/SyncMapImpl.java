@@ -75,7 +75,7 @@ import java.util.function.IntFunction;
     ExpungingValue<V> entry = this.read.get(key);
     if(entry == null && this.readAmended) {
       synchronized(this.lock) {
-        if(this.readAmended && (entry = this.read.get(key)) == null && this.dirty != null) {
+        if((entry = this.read.get(key)) == null && this.readAmended && this.dirty != null) {
           entry = this.dirty.get(key);
           // The slow path should be avoided, even if the value does
           // not match or is present. So we mark a miss, to eventually
@@ -148,7 +148,7 @@ import java.util.function.IntFunction;
     ExpungingValue<V> entry = this.read.get(key);
     if(entry == null && this.readAmended) {
       synchronized(this.lock) {
-        if(this.readAmended && (entry = this.read.get(key)) == null && this.dirty != null) {
+        if((entry = this.read.get(key)) == null && this.readAmended && this.dirty != null) {
           entry = this.dirty.remove(key);
           // The slow path should be avoided, even if the value does
           // not match or is present. So we mark a miss, to eventually
@@ -167,7 +167,7 @@ import java.util.function.IntFunction;
     ExpungingValue<V> entry = this.read.get(key);
     if(entry == null && this.readAmended) {
       synchronized(this.lock) {
-        if(this.readAmended && (entry = this.read.get(key)) == null && this.dirty != null) {
+        if((entry = this.read.get(key)) == null && this.readAmended && this.dirty != null) {
           if((entry = this.dirty.get(key)) != null && entry.replace(value, null)) {
             entry = this.dirty.remove(key);
           } else {
@@ -235,7 +235,7 @@ import java.util.function.IntFunction;
     ExpungingValue<V> entry = this.read.get(key);
     if(entry == null && this.readAmended) {
       synchronized(this.lock) {
-        if(this.readAmended && (entry = this.read.get(key)) == null && this.dirty != null) {
+        if((entry = this.read.get(key)) == null && this.readAmended && this.dirty != null) {
           if((entry = this.dirty.get(key)) != null && !entry.replace(oldValue, newValue)) {
             entry = null;
           }

@@ -1,0 +1,100 @@
+package space.vectrix.flare.fastutil;
+
+import it.unimi.dsi.fastutil.{{ G }}.Abstract{{ K }}Set;
+import it.unimi.dsi.fastutil.{{ G }}.{{ K }}Collection;
+import it.unimi.dsi.fastutil.{{ G }}.{{ K }}Iterator;
+import it.unimi.dsi.fastutil.{{ G }}.{{ K }}Set;
+import it.unimi.dsi.fastutil.{{ G }}.{{ K }}Spliterator;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+/* package */ final class {{ K }}2ObjectSyncMapSet extends Abstract{{ K }}Set implements {{ K }}Set {
+  private static final long serialVersionUID = 1;
+  private final {{ K }}2ObjectSyncMap<Boolean> map;
+  private final {{ K }}Set set;
+
+  /* package */ {{ K }}2ObjectSyncMapSet(final @NonNull {{ K }}2ObjectSyncMap<Boolean> map) {
+    this.map = map;
+    this.set = map.keySet();
+  }
+
+  @Override
+  public void clear() {
+    this.map.clear();
+  }
+
+  @Override
+  public int size() {
+    return this.map.size();
+  }
+
+  @Override
+  public boolean isEmpty() {
+    return this.map.isEmpty();
+  }
+
+  @Override
+  public boolean contains(final {{ k }} key) {
+    return this.map.containsKey(key);
+  }
+
+  @Override
+  public boolean remove(final {{ k }} key) {
+    return this.map.remove(key) != null;
+  }
+
+  @Override
+  public boolean add(final {{ k }} key) {
+    return this.map.put(key, Boolean.TRUE) == null;
+  }
+
+  @Override
+  public boolean containsAll(final @NonNull {{ K }}Collection collection) {
+    return this.set.containsAll(collection);
+  }
+
+  @Override
+  public boolean removeAll(final @NonNull {{ K }}Collection collection) {
+    return this.set.removeAll(collection);
+  }
+
+  @Override
+  public boolean retainAll(final @NonNull {{ K }}Collection collection) {
+    return this.set.retainAll(collection);
+  }
+
+  @Override
+  public @NonNull {{ K }}Iterator iterator() {
+    return this.set.iterator();
+  }
+
+  @Override
+  public @NonNull {{ K }}Spliterator spliterator() {
+    return this.set.spliterator();
+  }
+
+  @Override
+  public {{ k }}[] toArray({{ k }}[] original) {
+    return this.set.toArray(original);
+  }
+
+  @Override
+  public {{ k }}[] to{{ K }}Array() {
+    return this.set.to{{ K }}Array();
+  }
+
+  @Override
+  public boolean equals(final @Nullable Object other) {
+    return other == this || this.set.equals(other);
+  }
+
+  @Override
+  public @NonNull String toString() {
+    return this.set.toString();
+  }
+
+  @Override
+  public int hashCode() {
+    return this.set.hashCode();
+  }
+}

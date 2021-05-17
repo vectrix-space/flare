@@ -113,7 +113,7 @@ public interface {{ K }}2ObjectSyncMap<V> extends {{ K }}2ObjectMap<V> {
    * @since 0.2.0
    */
   static @NonNull {{ K }}Set setOf(final @NonNull IntFunction<{{ K }}2ObjectMap<ExpungingValue<Boolean>>> function, final int initialCapacity) {
-    return new {{ K }}2ObjectSyncMapImpl<>(function, initialCapacity).keySet();
+    return new {{ K }}2ObjectSyncMapSet(new {{ K }}2ObjectSyncMapImpl<>(function, initialCapacity));
   }
 
   /**

@@ -1,6 +1,5 @@
 package space.vectrix.flare;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -8,518 +7,251 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import it.unimi.dsi.fastutil.{{ G }}.{{ K }}Set;
 import it.unimi.dsi.fastutil.{{ G }}.{{ K }}2ObjectMap;
-import it.unimi.dsi.fastutil.{{ G }}.{{ K }}2ObjectOpenHashMap;
-import org.junit.jupiter.api.RepeatedTest;
+import net.jodah.concurrentunit.Waiter;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.junit.jupiter.api.Test;
 import space.vectrix.flare.fastutil.{{ K }}2ObjectSyncMap;
-import space.vectrix.test.SyncTesting;
+import space.vectrix.test.TestHelper;
 
-import java.util.ArrayList;
+import java.util.AbstractMap;
 import java.util.Collection;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Random;
 import java.util.Set;
-import java.util.Spliterator;
-import java.util.stream.IntStream;
+import java.util.concurrent.atomic.AtomicInteger;
 
-class {{ K }}2ObjectSyncMapTest {
-  @Test
-  public void testInitialization() {
-    final {{ K }}2ObjectSyncMap<String> map = {{ K }}2ObjectSyncMap.hashmap();
-    assertEquals(0, map.size());
-    assertTrue(map.isEmpty());
-    assertFalse(map.containsKey({{ TestFoo }}));
-    assertFalse(map.containsValue("bar"));
-    assertNull(map.get({{ TestFoo }}));
-    assertNull(map.remove({{ TestFoo }}));
-    assertFalse(map.remove({{ TestFoo }}, "bar"));
+public class {{ K }}2ObjectSyncMapTest extends {{ K }}2ObjectAbstractMapTest<String> {
+  @Override
+  protected @NonNull {{ K }}2ObjectMap<String> createMap() {
+    return {{ K }}2ObjectSyncMap.hashmap();
   }
 
-  @Test
-  public void testPutDisallowsNullValues() {
-    final {{ K }}2ObjectSyncMap<String> map = {{ K }}2ObjectSyncMap.hashmap();
-    assertThrows(NullPointerException.class, () -> map.put({{ TestFoo }}, null));
-  }
-
-  @Test
-  public void testMutation_put_get() {
-    final {{ K }}2ObjectSyncMap<String> map = {{ K }}2ObjectSyncMap.hashmap();
-    assertNull(map.put({{ TestFoo }}, "bar"));
-    assertEquals("bar", map.get({{ TestFoo }}));
-    assertEquals("bar", map.put({{ TestFoo }}, "baz"));
-    assertEquals("baz", map.get({{ TestFoo }}));
-    assertEquals(1, map.size());
-    assertFalse(map.isEmpty());
-    assertTrue(map.containsKey({{ TestFoo }}));
-    assertTrue(map.containsValue("baz"));
-  }
-
-  @Test
-  public void testMutation_repeatedPut() {
-    final {{ K }}2ObjectSyncMap<String> map = {{ K }}2ObjectSyncMap.hashmap();
-    assertNull(map.put({{ TestFoo }}, "bar"));
-    for(int i = 0; i < 10; i++) {
-      assertEquals("bar", map.get({{ TestFoo }}));
+  @Override
+  protected @NonNull {{ K }}2ObjectMap<String> populate(final @NonNull {{ K }}2ObjectMap<String> map, final int entries) {
+    for(int i = 0; i < entries; i++) {
+      map.put(this.key(i), this.value(i));
     }
-    assertEquals("bar", map.put({{ TestFoo }}, "baz"));
-    assertEquals("baz", map.get({{ TestFoo }}));
+    return map;
+  }
+
+  @Override
+  protected {{ K }}2ObjectMap.@NonNull Entry<String> entry(final int index) {
+    return this.exampleEntry({{ KT }}.valueOf(String.valueOf(index)), String.valueOf(index));
+  }
+
+  @Override
+  protected {{ k }} key(final int index) {
+    return {{ KT }}.valueOf(String.valueOf(index));
+  }
+
+  @Override
+  protected String value(final int index) {
+    return String.valueOf(index);
+  }
+
+  // Put
+
+  @Test
+  public void testPutNullValue() {
+    final {{ K }}2ObjectMap<String> map = this.createMap();
+    assertThrows(NullPointerException.class, () -> map.put(this.key(0), null));
   }
 
   @Test
-  public void testMutation_handlesDirtyAndReadPut() {
-    final {{ K }}2ObjectSyncMap<String> map = {{ K }}2ObjectSyncMap.hashmap();
-    assertNull(map.put({{ TestFoo }}, "bar"));
-    for(int i = 0; i < 10; i++) {
-      assertEquals("bar", map.get({{ TestFoo }}));
+  public void testPutRead() {
+    final {{ K }}2ObjectMap<String> map = this.populate(this.createMap(), 3);
+    assertEquals(this.value(0), map.put(this.key(0), this.value(3)), "Map should return the value at index 0, when putting a value for the key at index 0.");
+    for(int i = 0; i < 10; i++) { // Read multiple times in order to promote dirty to read map.
+      assertEquals(this.value(3), map.get(this.key(0)), "Map should return the value at index 3, when retrieving the key at index 0.");
     }
-    assertNull(map.put({{ TestBar }}, "123"));
-    assertEquals("123", map.get({{ TestBar }}));
-    assertEquals("bar", map.get({{ TestFoo }}));
+    assertEquals(this.value(3), map.put(this.key(0), this.value(2)), "Map should return the value at index 3, when putting a value for the key at index 0.");
+    assertEquals(this.value(2), map.get(this.key(0)), "Map should return the value at index 2, when retrieving the key at index 0.");
+    assertNull(map.put(this.key(3), this.value(3)), "Map should return null when putting a new entry.");
+    assertEquals(this.value(3), map.get(this.key(3)), "Map should return the value at index 3, when retrieving the key at index 3.");
+  }
+
+  // Put If Absent
+
+  @Test
+  public void testPutIfAbsentNullValue() {
+    final {{ K }}2ObjectMap<String> map = this.createMap();
+    assertThrows(NullPointerException.class, () -> map.putIfAbsent(this.key(0), null));
   }
 
   @Test
-  public void testMutation_ensuresExpungedEntriesProperlyHandled() {
-    final {{ K }}2ObjectSyncMap<String> map = {{ K }}2ObjectSyncMap.hashmap();
-    assertNull(map.put({{ TestFoo }}, "bar"));
-    for(int i = 0; i < 10; i++) {
-      assertEquals("bar", map.get({{ TestFoo }}));
+  public void testPutIfAbsentRead() {
+    final {{ K }}2ObjectMap<String> map = this.createMap();
+    assertNull(map.putIfAbsent(this.key(0), this.value(0)), "Map should return null when no previous value is present for the key at index 0.");
+    for(int i = 0; i < 10; i++) { // Read multiple times in order to promote dirty to read map.
+      assertEquals(this.value(0), map.get(this.key(0)), "Map should return the value at index 0 when no mutation of the key at index 0 should have occurred.");
     }
-    assertEquals("bar", map.remove({{ TestFoo }}));
-    assertEquals(0, map.size());
-    assertNull(map.put({{ TestBar }}, "123"));
-    assertNull(map.get({{ TestFoo }}));
-    for(int i = 0; i < 10; i++) {
-      assertEquals("123", map.get({{ TestBar }}));
+    assertEquals(this.value(0), map.putIfAbsent(this.key(0), this.value(2)), "Map should return the value at index 0, when attempting to put the key at index 0.");
+    assertEquals(this.value(0), map.get(this.key(0)), "Map should return the value at index 0 when no mutation of the key at index 0 should have occurred.");
+  }
+
+  // Replace
+
+  @Test
+  public void testReplaceNullValue() {
+    final {{ K }}2ObjectMap<String> map = this.createMap();
+    assertThrows(NullPointerException.class, () -> map.replace(this.key(0), null));
+  }
+
+  @Test
+  public void testReplaceRead() {
+    final {{ K }}2ObjectMap<String> map = this.populate(this.createMap(), 3);
+    for(int i = 0; i < 10; i++) { // Read multiple times in order to promote dirty to read map.
+      assertEquals(this.value(0), map.get(this.key(0)), "Map should return the value at index 0 when no mutation of the key at index 0 should have occurred.");
     }
-    assertNull(map.get({{ TestFoo }}));
+    assertEquals(this.value(0), map.replace(this.key(0), this.value(3)), "Map should return the previous value associated with the key at index 0.");
+    assertEquals(this.value(3), map.get(this.key(0)), "Map should return the new value associated with the key at index 0.");
+  }
+
+  // Replace Entry
+
+  @Test
+  public void testReplaceEntryNullValue1() {
+    final {{ K }}2ObjectMap<String> map = this.createMap();
+    assertThrows(NullPointerException.class, () -> map.replace(this.key(0), null, this.value(0)));
   }
 
   @Test
-  public void testMutation_putExpungedProperlyHandled() {
-    final {{ K }}2ObjectSyncMap<String> map = {{ K }}2ObjectSyncMap.hashmap();
-    assertNull(map.put({{ TestFoo }}, "bar"));
-    for(int i = 0; i < 10; i++) {
-      assertEquals("bar", map.get({{ TestFoo }}));
+  public void testReplaceEntryNullValue2() {
+    final {{ K }}2ObjectMap<String> map = this.createMap();
+    assertThrows(NullPointerException.class, () -> map.replace(this.key(0), this.value(0), null));
+  }
+
+  @Test
+  public void testReplaceEntryRead() {
+    final {{ K }}2ObjectMap<String> map = this.populate(this.createMap(), 3);
+    for(int i = 0; i < 10; i++) { // Read multiple times in order to promote dirty to read map.
+      assertEquals(this.value(0), map.get(this.key(0)), "Map should return the value at index 0 when no mutation of the key at index 0 should have occurred.");
     }
-    assertEquals("bar", map.remove({{ TestFoo }}));
-    assertEquals(0, map.size());
-    assertNull(map.put({{ TestBar }}, "123"));
-    assertNull(map.put({{ TestFoo }}, "baz"));
-    assertEquals("baz", map.get({{ TestFoo }}));
-    for(int i = 0; i < 10; i++) {
-      assertEquals("123", map.get({{ TestBar }}));
-    }
-    assertEquals("123", map.get({{ TestBar }}));
-    assertEquals("baz", map.get({{ TestFoo }}));
+    assertFalse(map.replace(this.key(0), this.value(1), this.value(2)), "Map should not be able to replace the key at index 0, with the old value not matching the actual stored value.");
+    assertTrue(map.replace(this.key(0), this.value(0), this.value(2)), "Map should be able to replace the key at index 0, with the old value matching the actual stored value.");
+    assertEquals(this.value(2), map.get(this.key(0)), "Map should return the new value associated with the key at index 0.");
+  }
+
+  // Entry Set
+
+  @Test
+  public void testEntriesAddUnsupported() {
+    final {{ K }}2ObjectMap<String> map = this.populate(this.createMap(), 3);
+    final Set<{{ K }}2ObjectMap.Entry<String>> keys = map.{{ k }}2ObjectEntrySet();
+    assertThrows(UnsupportedOperationException.class, () -> keys.add(this.entry(0)));
   }
 
   @Test
-  public void testPutIfAbsentDisallowsNullValues() {
-    final {{ K }}2ObjectSyncMap<String> map = {{ K }}2ObjectSyncMap.hashmap();
-    assertThrows(NullPointerException.class, () -> map.putIfAbsent({{ TestFoo }}, null));
+  public void testEntriesAddAllUnsupported() {
+    final {{ K }}2ObjectMap<String> map = this.populate(this.createMap(), 3);
+    final Set<{{ K }}2ObjectMap.Entry<String>> keys = map.{{ k }}2ObjectEntrySet();
+    assertThrows(UnsupportedOperationException.class, () -> keys.addAll(Lists.newArrayList(this.entry(0), this.entry(1))));
   }
 
-  @Test
-  public void testMutation_putIfAbsentBasic() {
-    final {{ K }}2ObjectSyncMap<String> map = {{ K }}2ObjectSyncMap.hashmap();
-    assertNull(map.putIfAbsent({{ TestFoo }}, "bar"));
-    assertEquals("bar", map.putIfAbsent({{ TestFoo }}, "baz"));
-    assertEquals("bar", map.get({{ TestFoo }}));
-    assertEquals("bar", map.remove({{ TestFoo }}));
-    assertNull(map.putIfAbsent({{ TestFoo }}, "bar"));
-  }
+  // Key Set
 
   @Test
-  public void testMutation_putIfAbsentPromoted() {
-    final {{ K }}2ObjectSyncMap<String> map = {{ K }}2ObjectSyncMap.hashmap();
-    assertNull(map.putIfAbsent({{ TestFoo }}, "bar"));
-    for(int i = 0; i < 10; i++) {
-      assertEquals("bar", map.get({{ TestFoo }}));
-    }
-    assertEquals("bar", map.putIfAbsent({{ TestFoo }}, "baz"));
-    assertEquals("bar", map.get({{ TestFoo }}));
-  }
-
-  @Test
-  public void testReplaceSingleDisallowsNullValues() {
-    final {{ K }}2ObjectSyncMap<String> map = {{ K }}2ObjectSyncMap.hashmap();
-    assertThrows(NullPointerException.class, () -> map.replace({{ TestFoo }}, null));
-  }
-
-  @Test
-  public void testMutation_replaceSingleBasic() {
-    final {{ K }}2ObjectSyncMap<String> map = {{ K }}2ObjectSyncMap.hashmap();
-    assertNull(map.replace({{ TestFoo }}, "bar"));
-    assertEquals(0, map.size());
-    assertNull(map.put({{ TestFoo }}, "bar"));
-    assertEquals("bar", map.replace({{ TestFoo }}, "baz"));
-    assertEquals("baz", map.get({{ TestFoo }}));
-  }
-
-  @Test
-  public void testMutation_replaceSingleHandlesPromotion() {
-    final {{ K }}2ObjectSyncMap<String> map = {{ K }}2ObjectSyncMap.hashmap();
-    assertNull(map.put({{ TestFoo }}, "bar"));
-    for(int i = 0; i < 10; i++) {
-      assertEquals("bar", map.get({{ TestFoo }}));
-    }
-    assertEquals("bar", map.replace({{ TestFoo }}, "baz"));
-    assertEquals("baz", map.get({{ TestFoo }}));
-  }
-
-  @Test
-  public void testReplaceSpecificDisallowsNullValues1() {
-    final {{ K }}2ObjectSyncMap<String> map = {{ K }}2ObjectSyncMap.hashmap();
-    assertThrows(NullPointerException.class, () -> map.replace({{ TestFoo }}, null, "abc"));
-  }
-
-  @Test
-  public void testReplaceSpecificDisallowsNullValues2() {
-    final {{ K }}2ObjectSyncMap<String> map = {{ K }}2ObjectSyncMap.hashmap();
-    assertThrows(NullPointerException.class, () -> map.replace({{ TestFoo }}, "bar", null));
-  }
-
-  @Test
-  public void testMutation_replaceSpecificBasic() {
-    final {{ K }}2ObjectSyncMap<String> map = {{ K }}2ObjectSyncMap.hashmap();
-    assertNull(map.put({{ TestFoo }}, "bar"));
-    assertFalse(map.replace({{ TestFoo }}, "baz", "bar"));
-    assertEquals("bar", map.get({{ TestFoo }}));
-    assertTrue(map.replace({{ TestFoo }}, "bar", "baz"));
-    assertEquals("baz", map.get({{ TestFoo }}));
-  }
-
-  @Test
-  public void testMutation_replaceSpecificPromoted() {
-    final {{ K }}2ObjectSyncMap<String> map = {{ K }}2ObjectSyncMap.hashmap();
-    assertNull(map.put({{ TestFoo }}, "bar"));
-    for(int i = 0; i < 10; i++) {
-      assertEquals("bar", map.get({{ TestFoo }}));
-    }
-    assertFalse(map.replace({{ TestFoo }}, "baz", "bar"));
-    assertEquals("bar", map.get({{ TestFoo }}));
-    assertTrue(map.replace({{ TestFoo }}, "bar", "baz"));
-    assertEquals("baz", map.get({{ TestFoo }}));
-  }
-
-  @Test
-  public void testMutation_putIfAbsentHandleExpunged() {
-    final {{ K }}2ObjectSyncMap<String> map = {{ K }}2ObjectSyncMap.hashmap();
-    assertNull(map.putIfAbsent({{ TestFoo }}, "bar"));
-    for(int i = 0; i < 10; i++) {
-      assertEquals("bar", map.get({{ TestFoo }}));
-    }
-    assertEquals("bar", map.remove({{ TestFoo }}));
-    assertEquals(0, map.size());
-    assertNull(map.put({{ TestBar }}, "123"));
-    assertNull(map.putIfAbsent({{ TestFoo }}, "baz"));
-    assertEquals("baz", map.get({{ TestFoo }}));
-  }
-
-  @Test
-  public void testMutation_putAll() {
-    final {{ K }}2ObjectSyncMap<String> map = {{ K }}2ObjectSyncMap.hashmap();
-    final {{ K }}2ObjectMap<String> test = new {{ K }}2ObjectOpenHashMap<>();
-    test.put({{ TestFoo }}, "2");
-    test.put({{ TestBar }}, "4");
-    test.put({{ TestBaz }}, "6");
-
-    map.putAll(test);
-    assertEquals("2", map.get({{ TestFoo }}));
-    assertEquals("4", map.get({{ TestBar }}));
-    assertEquals("6", map.get({{ TestBaz }}));
-  }
-
-  @Test
-  public void testMutation_remove() {
-    final {{ K }}2ObjectSyncMap<String> map = {{ K }}2ObjectSyncMap.hashmap();
-    map.put({{ TestFoo }}, "bar");
-    map.put({{ TestBar }}, "123");
-    assertEquals(2, map.size());
-    assertEquals("bar", map.remove({{ TestFoo }}));
-    assertTrue(map.remove({{ TestBar }}, "123"));
-    assertNull(map.get({{ TestFoo }}));
-    assertNull(map.get({{ TestBar }}));
-    assertEquals(0, map.size());
-  }
-
-  @Test
-  public void testMutation_unexpunge() {
-    final {{ K }}2ObjectSyncMap<String> map = {{ K }}2ObjectSyncMap.hashmap();
-    assertNull(map.put({{ TestFoo }}, "bar"));
-    assertEquals("bar", map.remove({{ TestFoo }}));
-    assertNull(map.put({{ TestFoo }}, "baz"));
-    assertEquals("baz", map.get({{ TestFoo }}));
-  }
-
-  @Test
-  public void testMutation_clear() {
-    final {{ K }}2ObjectSyncMap<String> map = {{ K }}2ObjectSyncMap.hashmap();
-    map.put({{ TestFoo }}, "random");
-    map.clear();
-    assertNull(map.get({{ TestFoo }}));
-    assertEquals(0, map.size());
-    assertTrue(map.isEmpty());
-  }
-
-  @Test
-  public void testKeySetPermittedMutations() {
-    final {{ K }}2ObjectSyncMap<String> map = {{ K }}2ObjectSyncMap.hashmap();
-    map.put({{ TestFoo }}, "2");
-    map.put({{ TestBaz }}, "4");
-
+  public void testKeysAddUnsupported() {
+    final {{ K }}2ObjectMap<String> map = this.populate(this.createMap(), 3);
     final {{ K }}Set keys = map.keySet();
-    assertEquals(2, keys.size());
-    assertFalse(keys.isEmpty());
-    assertTrue(keys.contains({{ TestFoo }}));
-    assertFalse(keys.contains({{ TestBar }}));
-    assertTrue(keys.remove({{ TestFoo }}));
-    assertFalse(keys.remove({{ TestBar }}));
-    assertFalse(keys.contains({{ TestFoo }}));
-    assertEquals(1, keys.size());
+    assertThrows(UnsupportedOperationException.class, () -> keys.add(this.key(0)));
   }
 
   @Test
-  public void testKeySetAdditionProhibited() {
-    final {{ K }}2ObjectSyncMap<String> map = {{ K }}2ObjectSyncMap.hashmap();
+  public void testKeysAddAllUnsupported() {
+    final {{ K }}2ObjectMap<String> map = this.populate(this.createMap(), 3);
     final {{ K }}Set keys = map.keySet();
-    assertThrows(UnsupportedOperationException.class, () -> keys.add({{ TestFoo }}));
+    assertThrows(UnsupportedOperationException.class, () -> keys.addAll(Lists.newArrayList(this.key(0), this.key(1))));
   }
 
-  @Test
-  public void testKeySetAddAllProhibited() {
-    final {{ K }}2ObjectSyncMap<String> map = {{ K }}2ObjectSyncMap.hashmap();
-    final {{ K }}Set keys = map.keySet();
-    assertThrows(UnsupportedOperationException.class, () -> keys.addAll(Lists.newArrayList({{ TestFoo }}, {{ TestBar }}))); // Causes UOE
-  }
-
-//  @Test
-//  public void testKeyMutation_iterator() {
-//    final SyncMap<String, String> map = SyncMap.of(LinkedHashMap<String, SyncMap.ExpungingValue<String>>::new, 3);
-//    map.put("1", "2");
-//    map.put("3", "4");
-//    map.put("5", "6");
-//    final {{ K }}Set keys = map.keySet();
-//    final Iterator<String> keyIterator = keys.iterator();
-//    assertTrue(keyIterator.hasNext());
-//    assertEquals("1", keyIterator.next());
-//    keyIterator.remove();
-//    assertFalse(keys.contains("1"));
-//    final String[] expected = {"3", "5"};
-//    final List<String> remaining = new ArrayList<>();
-//    keyIterator.forEachRemaining(remaining::add);
-//    assertArrayEquals(expected, remaining.toArray());
-//  }
-
-//  @Test
-//  public void testKeyMutation_spliterator() {
-//    final SyncMap<String, String> map = SyncMap.of(LinkedHashMap<String, SyncMap.ExpungingValue<String>>::new, 3);
-//    map.put("1", "2");
-//    map.put("3", "4");
-//    map.put("5", "6");
-//    final {{ K }}Set keys = map.keySet();
-//    final Spliterator<String> keySpliterator = keys.spliterator();
-//    assertTrue(keySpliterator.tryAdvance(value -> assertEquals("1", value)));
-//    final String[] expected = {"3", "5"};
-//    final List<String> remaining = new ArrayList<>();
-//    keySpliterator.forEachRemaining(remaining::add);
-//    assertArrayEquals(expected, remaining.toArray());
-//    assertEquals(3, keySpliterator.estimateSize());
-//  }
+  // Value Collection
 
   @Test
-  public void testValuesPermittedMutation() {
-    final {{ K }}2ObjectSyncMap<String> map = {{ K }}2ObjectSyncMap.hashmap();
-    map.put({{ TestFoo }}, "2");
-    map.put({{ TestBaz }}, "4");
+  public void testValuesAddUnsupported() {
+    final {{ K }}2ObjectMap<String> map = this.populate(this.createMap(), 3);
     final Collection<String> values = map.values();
-    assertEquals(2, values.size());
-    assertFalse(values.isEmpty());
-    assertTrue(values.contains("2"));
-    assertFalse(values.contains("3"));
-    assertTrue(values.remove("2"));
-    assertFalse(values.remove("3"));
-    assertFalse(values.contains("3"));
-    assertEquals(1, values.size());
+    assertThrows(UnsupportedOperationException.class, () -> values.add(this.value(0)));
   }
 
   @Test
-  public void testValuesAdditionProhibited() {
-    final {{ K }}2ObjectSyncMap<String> map = {{ K }}2ObjectSyncMap.hashmap();
+  public void testValuesAddAllUnsupported() {
+    final {{ K }}2ObjectMap<String> map = this.populate(this.createMap(), 3);
     final Collection<String> values = map.values();
-    assertThrows(UnsupportedOperationException.class, () -> values.add("1"));
+    assertThrows(UnsupportedOperationException.class, () -> values.addAll(Lists.newArrayList(this.value(0), this.value(1))));
+  }
+
+  // Expunging
+
+  @Test
+  public void testExpungeRead() {
+    final {{ K }}2ObjectMap<String> map = this.populate(this.createMap(), 3);
+    final int initialSize = map.size();
+    for(int i = 0; i < 10; i++) { // Read multiple times in order to promote dirty to read map.
+      assertEquals(this.value(0), map.get(this.key(0)), "Map should return the value at index 0, when retrieving the key at index 0.");
+    }
+    assertEquals(this.value(0), map.remove(this.key(0)), "Map should return the value at index 0, when removing the entry for the key at index 0.");
+    assertEquals(initialSize - 1, map.size(), "Map should return a size with 1 less when removing an entry.");
+    assertNull(map.get(this.key(0)), "Map should return null when removing the entry.");
+    assertNull(map.remove(this.key(0)), "Map should return null when removing the entry at index 0 with no value present.");
+    for(int i = 0; i < 10; i++) { // Read multiple times in order to promote dirty to read map.
+      assertEquals(this.value(2), map.get(this.key(2)), "Map should return the value at index 2, when retrieving the key at index 2.");
+    }
+    assertNull(map.get(this.key(0)), "Map should return null after the entry is removed.");
   }
 
   @Test
-  public void testValuesAddAllProhibited() {
-    final {{ K }}2ObjectSyncMap<String> map = {{ K }}2ObjectSyncMap.hashmap();
-    final Collection<String> values = map.values();
-    assertThrows(UnsupportedOperationException.class, () -> values.addAll(Lists.newArrayList("1", "baz")));
+  public void testUnexpungeRead() {
+    final {{ K }}2ObjectMap<String> map = this.populate(this.createMap(), 3);
+    final int initialSize = map.size();
+    for(int i = 0; i < 10; i++) { // Read multiple times in order to promote dirty to read map.
+      assertEquals(this.value(0), map.get(this.key(0)), "Map should return the value at index 0, when retrieving the key at index 0.");
+    }
+    assertEquals(this.value(0), map.remove(this.key(0)), "Map should return the value at index 0, when removing the entry for the key at index 0.");
+    assertEquals(initialSize - 1, map.size(), "Map should return a size with 1 less when removing an entry.");
+    assertNull(map.get(this.key(0)), "Map should return null when removing the entry.");
+    assertNull(map.remove(this.key(0)), "Map should return null when removing the entry at index 0 with no value present.");
+    assertNull(map.put(this.key(0), this.value(0)), "Map should return null when putting the entry into the map.");
+    assertEquals(this.value(0), map.get(this.key(0)), "Map should return the value at index 0 for the key at index 0.");
+    for(int i = 0; i < 10; i++) { // Read multiple times in order to promote dirty to read map.
+      assertEquals(this.value(2), map.get(this.key(2)), "Map should return the value at index 2, when retrieving the key at index 2.");
+    }
+    assertEquals(this.value(0), map.get(this.key(0)), "Map should return the value at index 0 for the key at index 0.");
   }
 
-//  @Test
-//  public void testValueMutation_iterator() {
-//    final SyncMap<String, String> map = SyncMap.of(LinkedHashMap<String, SyncMap.ExpungingValue<String>>::new, 3);
-//    map.put("1", "2");
-//    map.put("3", "4");
-//    map.put("5", "6");
-//    final Collection<String> values = map.values();
-//    final Iterator<String> valueIterator = values.iterator();
-//    assertTrue(valueIterator.hasNext());
-//    assertEquals("2", valueIterator.next());
-//    valueIterator.remove();
-//    assertFalse(values.contains("2"));
-//    final String[] expected = {"4", "6"};
-//    final List<String> remaining = new ArrayList<>();
-//    valueIterator.forEachRemaining(remaining::add);
-//    assertArrayEquals(expected, remaining.toArray());
-//  }
-
-//  @Test
-//  public void testValueMutation_spliterator() {
-//    final SyncMap<String, String> map = SyncMap.of(LinkedHashMap<String, SyncMap.ExpungingValue<String>>::new, 3);
-//    map.put("1", "2");
-//    map.put("3", "4");
-//    map.put("5", "6");
-//    final Collection<String> values = map.values();
-//    final Spliterator<String> valueSpliterator = values.spliterator();
-//    assertTrue(valueSpliterator.tryAdvance(value -> assertEquals("2", value)));
-//    final String[] expected = {"4", "6"};
-//    final List<String> remaining = new ArrayList<>();
-//    valueSpliterator.forEachRemaining(remaining::add);
-//    assertArrayEquals(expected, remaining.toArray());
-//    assertEquals(3, valueSpliterator.estimateSize());
-//  }
+  // Concurrent
 
   @Test
-  public void testEntryMutation() {
-    final {{ K }}2ObjectSyncMap<String> map = {{ K }}2ObjectSyncMap.hashmap();
-    map.put({{ TestFoo }}, "2");
-    map.put({{ TestBaz }}, "4");
-    final {{ K }}2ObjectMap.Entry<String> goodEntry = this.exampleEntry({{ TestFoo }}, "2");
-    final {{ K }}2ObjectMap.Entry<String> badEntry = this.exampleEntry({{ TestBar }}, "123");
-    final Set<{{ K }}2ObjectMap.Entry<String>> entries = map.{{ k }}2ObjectEntrySet();
-    assertEquals(2, entries.size());
-    assertFalse(entries.isEmpty());
-    assertTrue(entries.contains(goodEntry));
-    assertFalse(entries.contains(badEntry));
-    assertTrue(entries.remove(goodEntry));
-    assertFalse(entries.remove(badEntry));
-    assertFalse(entries.contains(goodEntry));
-    assertEquals(1, entries.size());
+  public void testConcurrentPutRemove() throws Throwable {
+    final {{ K }}2ObjectMap<Boolean> map = {{ K }}2ObjectSyncMap.hashmap();
+    final Waiter waiter = new Waiter();
+    final AtomicInteger counter = new AtomicInteger();
+
+    final int threadCount = 50;
+    TestHelper.threadedRun(threadCount, () -> {
+      try {
+        final Random shouldPut = new Random();
+        for(int i = 0; i < 1_000_000; i++) {
+          {{ k }} value = {{ KT }}.valueOf(String.valueOf(counter.get()));
+          if(shouldPut.nextBoolean()) {
+            map.put(value, Boolean.TRUE);
+          } else {
+            map.remove(value);
+          }
+        }
+      } catch (final Exception exception) {
+        waiter.fail(exception);
+      }
+
+      waiter.resume();
+    });
+
+    waiter.await(100_000, threadCount);
   }
 
-  @Test
-  public void testEntryAddProhibited() {
-    final {{ K }}2ObjectSyncMap<String> map = {{ K }}2ObjectSyncMap.hashmap();
-    final {{ K }}2ObjectMap.Entry<String> badEntry = this.exampleEntry({{ TestBar }}, "123");
-    assertThrows(UnsupportedOperationException.class, () -> map.{{ k }}2ObjectEntrySet().add(badEntry));
-  }
-
-  @Test
-  public void testEntryAddAllProhibited() {
-    final {{ K }}2ObjectSyncMap<String> map = {{ K }}2ObjectSyncMap.hashmap();
-    final {{ K }}2ObjectMap.Entry<String> badEntry = this.exampleEntry({{ TestBar }}, "123");
-    final {{ K }}2ObjectMap.Entry<String> badEntry2 = this.exampleEntry({{ TestFoo }}, "2");
-    assertThrows(UnsupportedOperationException.class, () -> map.{{ k }}2ObjectEntrySet().addAll(Lists.newArrayList(badEntry, badEntry2)));
-  }
-
-//  @Test
-//  public void testEntryMutation_iterator() {
-//    final SyncMap<String, String> map = SyncMap.of(LinkedHashMap<String, SyncMap.ExpungingValue<String>>::new, 3);
-//    map.put("1", "2");
-//    map.put("3", "4");
-//    map.put("5", "6");
-//    final {{ K }}2ObjectMap.Entry<String> firstEntry = this.exampleEntry("1", "2");
-//    final {{ K }}2ObjectMap.Entry<String> secondEntry = this.exampleEntry("3", "4");
-//    final {{ K }}2ObjectMap.Entry<String> thirdEntry = this.exampleEntry("5", "6");
-//    final Set<{{ K }}2ObjectMap.Entry<String>> entries = map.{{ k }}2ObjectEntrySet();
-//    final Iterator<{{ K }}2ObjectMap.Entry<String>> entryIterator = entries.iterator();
-//    assertTrue(entryIterator.hasNext());
-//    assertEquals(entryIterator.next(), firstEntry);
-//    entryIterator.remove();
-//    assertFalse(entries.contains(firstEntry));
-//    final List<{{ K }}2ObjectMap.Entry<String>> remaining = new ArrayList<>();
-//    entryIterator.forEachRemaining(remaining::add);
-//    assertEquals(Lists.newArrayList(secondEntry, thirdEntry), remaining);
-//  }
-
-//  @Test
-//  public void testEntryMutation_spliterator() {
-//    final SyncMap<String, String> map = SyncMap.of(LinkedHashMap<String, SyncMap.ExpungingValue<String>>::new, 3);
-//    map.put("1", "2");
-//    map.put("3", "4");
-//    map.put("5", "6");
-//    final {{ K }}2ObjectMap.Entry<String> firstEntry = this.exampleEntry("1", "2");
-//    final {{ K }}2ObjectMap.Entry<String> secondEntry = this.exampleEntry("3", "4");
-//    final {{ K }}2ObjectMap.Entry<String> thirdEntry = this.exampleEntry("5", "6");
-//    final Set<{{ K }}2ObjectMap.Entry<String>> entries = map.{{ k }}2ObjectEntrySet();
-//    final Spliterator<{{ K }}2ObjectMap.Entry<String>> entrySpliterator = entries.spliterator();
-//    assertTrue(entrySpliterator.tryAdvance(value -> assertEquals(firstEntry, value)));
-//    final List<{{ K }}2ObjectMap.Entry<String>> remaining = new ArrayList<>();
-//    entrySpliterator.forEachRemaining(remaining::add);
-//    assertEquals(Lists.newArrayList(secondEntry, thirdEntry), remaining);
-//    assertEquals(3, entrySpliterator.estimateSize());
-//  }
-
-//  @Test
-//  public void testConcurrentEntryMutation_iterator() {
-//    final SyncMap<String, String> map = SyncMap.of(LinkedHashMap<String, SyncMap.ExpungingValue<String>>::new, 3);
-//    map.put("1", "2");
-//    map.put("3", "4");
-//    map.put("5", "6");
-//    final {{ K }}2ObjectMap.Entry<String> firstEntry = this.exampleEntry("1", "2");
-//    final {{ K }}2ObjectMap.Entry<String> secondEntry = this.exampleEntry("3", "4");
-//    final {{ K }}2ObjectMap.Entry<String> thirdEntry = this.exampleEntry("5", "6");
-//    final {{ K }}2ObjectMap.Entry<String> fourthEntry = this.exampleEntry("7", "8");
-//    final {{ K }}2ObjectMap.Entry<String> fifthEntry = this.exampleEntry("9", "10");
-//    final Set<{{ K }}2ObjectMap.Entry<String>> entries = map.{{ k }}2ObjectEntrySet();
-//    final Iterator<{{ K }}2ObjectMap.Entry<String>> entryIterator = entries.iterator();
-//    assertTrue(entryIterator.hasNext());
-//    map.put("7", "8");
-//    map.put("9", "10");
-//    assertEquals(entryIterator.next(), firstEntry);
-//    entryIterator.remove();
-//    assertFalse(entries.contains(firstEntry));
-//    assertTrue(entries.contains(fourthEntry));
-//    assertTrue(entries.contains(fifthEntry));
-//    final List<{{ K }}2ObjectMap.Entry<String>> remaining = new ArrayList<>();
-//    entryIterator.forEachRemaining(remaining::add);
-//    assertEquals(Lists.newArrayList(secondEntry, thirdEntry), remaining);
-//    assertEquals(4, map.size());
-//  }
-
-  @RepeatedTest(5)
-  public void testConcurrency() throws InterruptedException {
-    final {{ K }}2ObjectSyncMap<Boolean> map = {{ K }}2ObjectSyncMap.hashmap();
-    SyncTesting.assertConcurrent("put tasks", Lists.newArrayList(
-      () -> IntStream.range(0, 500).forEach(number -> map.put(({{ k }}) number, Boolean.TRUE)),
-      () -> IntStream.range(250, 750).forEach(number -> map.put(({{ k }}) number, Boolean.TRUE)),
-      () -> IntStream.range(500, 1000).forEach(number -> map.put(({{ k }}) number, Boolean.TRUE))
-    ), 5);
-    SyncTesting.assertConcurrent("remove tasks", Lists.newArrayList(
-      () -> IntStream.range(0, 500).forEach(number -> map.remove(({{ k }}) number, Boolean.TRUE)),
-      () -> IntStream.range(250, 750).forEach(number -> map.remove(({{ k }}) number, Boolean.TRUE)),
-      () -> IntStream.range(500, 1000).forEach(number -> map.remove(({{ k }}) number, Boolean.TRUE))
-    ), 5);
-    SyncTesting.assertConcurrent("putIfAbsent tasks", Lists.newArrayList(
-      () -> IntStream.range(0, 500).forEach(number -> map.putIfAbsent(({{ k }}) number, Boolean.TRUE)),
-      () -> IntStream.range(250, 750).forEach(number -> map.putIfAbsent(({{ k }}) number, Boolean.TRUE)),
-      () -> IntStream.range(500, 1000).forEach(number -> map.putIfAbsent(({{ k }}) number, Boolean.TRUE))
-    ), 5);
-    SyncTesting.assertConcurrent("get tasks", Lists.newArrayList(
-      () -> IntStream.range(0, 500).forEach(number -> map.get(({{ k }}) number)),
-      () -> IntStream.range(250, 750).forEach(number -> map.get(({{ k }}) number)),
-      () -> IntStream.range(500, 1000).forEach(number -> map.get(({{ k }}) number))
-    ), 5);
-    assertEquals(1000, map.size());
-  }
+  // Utility
 
   private {{ K }}2ObjectMap.Entry<String> exampleEntry(final {{ k }} key, final String value) {
     return new {{ K }}2ObjectMap.Entry<String>() {

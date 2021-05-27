@@ -38,6 +38,15 @@ import java.util.function.IntFunction;
   }
 
   @Override
+  public boolean containsValue(Object value) {
+    final ObjectIterator<{{ K }}2ObjectMap.Entry<V>> iterator = this.{{ k }}2ObjectEntrySet().iterator();
+    while(iterator.hasNext()) {
+      if(Objects.equals(((Map.Entry<?, ?>) iterator.next()).getValue(), value)) return true;
+    }
+    return false;
+  }
+
+  @Override
   public int size() {
     this.promoteIfNeeded();
     return this.getSize(this.read);
@@ -434,7 +443,7 @@ import java.util.function.IntFunction;
       if(!(entry instanceof {{ K }}2ObjectMap.Entry)) return false;
       final {{ K }}2ObjectMap.Entry<?> mapEntry = ({{ K }}2ObjectMap.Entry<?>) entry;
       final V value = {{ K }}2ObjectSyncMapImpl.this.get(mapEntry.get{{ K }}Key());
-      return value != null && Objects.equals(mapEntry.getValue(), value);
+      return value != null && Objects.equals(value, mapEntry.getValue());
     }
 
     @Override

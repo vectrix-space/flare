@@ -454,7 +454,7 @@ import java.util.function.IntFunction;
       if(!(entry instanceof Map.Entry)) return false;
       final Map.Entry<?, ?> mapEntry = (Entry<?, ?>) entry;
       final V value = SyncMapImpl.this.get(mapEntry.getKey());
-      return value != null && Objects.equals(mapEntry.getValue(), value);
+      return value != null && Objects.equals(value, mapEntry.getValue());
     }
 
     @Override

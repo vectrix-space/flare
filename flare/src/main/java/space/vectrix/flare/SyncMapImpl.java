@@ -317,21 +317,21 @@ import java.util.function.IntFunction;
 
     @Override
     public @Nullable V get() {
-      final Object value = valueUpdater.get(this);
-      return value == EXPUNGED ? null : (V) value;
+      final Object value = ExpungingValueImpl.valueUpdater.get(this);
+      return value == ExpungingValueImpl.EXPUNGED ? null : (V) value;
     }
 
     @Override
     public @NonNull Entry<Boolean, V> putIfAbsent(final @NonNull V value) {
       for(; ; ) {
-        final Object previous = valueUpdater.get(this);
-        if(previous == EXPUNGED) {
+        final Object previous = ExpungingValueImpl.valueUpdater.get(this);
+        if(previous == ExpungingValueImpl.EXPUNGED) {
           return new AbstractMap.SimpleImmutableEntry<>(Boolean.FALSE, null);
         }
         if(previous != null) {
           return new AbstractMap.SimpleImmutableEntry<>(Boolean.TRUE, (V) previous);
         }
-        if(valueUpdater.compareAndSet(this, null, value)) {
+        if(ExpungingValueImpl.valueUpdater.compareAndSet(this, null, value)) {
           return new AbstractMap.SimpleImmutableEntry<>(Boolean.TRUE, null);
         }
       }
@@ -339,60 +339,65 @@ import java.util.function.IntFunction;
 
     @Override
     public boolean expunged() {
-      return valueUpdater.get(this) == EXPUNGED;
+      return ExpungingValueImpl.valueUpdater.get(this) == ExpungingValueImpl.EXPUNGED;
     }
 
     @Override
     public boolean exists() {
-      final Object value = valueUpdater.get(this);
-      return value != null && value != EXPUNGED;
+      final Object value = ExpungingValueImpl.valueUpdater.get(this);
+      return value != null && value != ExpungingValueImpl.EXPUNGED;
     }
 
     @Override
     public void set(final @NonNull V value) {
-      valueUpdater.set(this, value);
+      ExpungingValueImpl.valueUpdater.set(this, value);
     }
 
     @Override
     public boolean replace(final @NonNull Object compare, final @Nullable V newValue) {
       for(; ; ) {
-        final Object value = valueUpdater.get(this);
-        if(value == EXPUNGED || !Objects.equals(value, compare)) return false;
-        if(valueUpdater.compareAndSet(this, value, newValue)) return true;
+        final Object value = ExpungingValueImpl.valueUpdater.get(this);
+        if(value == ExpungingValueImpl.EXPUNGED || !Objects.equals(value, compare)) return false;
+        if(ExpungingValueImpl.valueUpdater.compareAndSet(this, value, newValue)) return true;
       }
     }
 
     @Override
     public @Nullable V clear() {
       for(; ; ) {
-        final Object value = valueUpdater.get(this);
-        if(value == null || value == EXPUNGED) return null;
-        if(valueUpdater.compareAndSet(this, value, null)) return (V) value;
+        final Object value = ExpungingValueImpl.valueUpdater.get(this);
+        if(value == null || value == ExpungingValueImpl.EXPUNGED) return null;
+        if(ExpungingValueImpl.valueUpdater.compareAndSet(this, value, null)) return (V) value;
       }
     }
 
     @Override
     public boolean trySet(final @NonNull V value) {
       for(; ; ) {
-        final Object present = valueUpdater.get(this);
-        if(present == EXPUNGED) return false;
-        if(valueUpdater.compareAndSet(this, present, value)) return true;
+        final Object present = ExpungingValueImpl.valueUpdater.get(this);
+        if(present == ExpungingValueImpl.EXPUNGED) return false;
+        if(ExpungingValueImpl.valueUpdater.compareAndSet(this, present, value)) return true;
       }
     }
 
     @Override
     public boolean tryMarkExpunged() {
-      Object value = valueUpdater.get(this);
+      Object value = ExpungingValueImpl.valueUpdater.get(this);
       while(value == null) {
-        if(valueUpdater.compareAndSet(this, null, EXPUNGED)) return true;
-        value = valueUpdater.get(this);
+        if(ExpungingValueImpl.valueUpdater.compareAndSet(this, null, ExpungingValueImpl.EXPUNGED)) return true;
+        value = ExpungingValueImpl.valueUpdater.get(this);
       }
       return false;
     }
 
     @Override
     public boolean tryUnexpungeAndSet(final @Nullable V value) {
-      return valueUpdater.compareAndSet(this, EXPUNGED, value);
+      return ExpungingValueImpl.valueUpdater.compareAndSet(this, ExpungingValueImpl.EXPUNGED, value);
+    }
+
+    @Override
+    public String toString() {
+      return "SyncMapImpl.ExpungingValue{value=" + this.get() + "}";
     }
   }
 

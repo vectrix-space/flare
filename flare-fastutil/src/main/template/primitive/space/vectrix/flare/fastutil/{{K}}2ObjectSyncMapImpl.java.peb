@@ -381,7 +381,7 @@ import java.util.function.IntFunction;
 
     @Override
     public boolean tryUnexpungeAndSet(final @Nullable V value) {
-      return ExpungingValueImpl.valueUpdater.compareAndSet(this, EXPUNGED, value);
+      return ExpungingValueImpl.valueUpdater.compareAndSet(this, ExpungingValueImpl.EXPUNGED, value);
     }
 
     @Override

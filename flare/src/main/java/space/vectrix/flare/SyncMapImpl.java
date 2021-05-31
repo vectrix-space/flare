@@ -43,7 +43,6 @@ import java.util.function.IntFunction;
 /* package */ final class SyncMapImpl<K, V> extends AbstractMap<K, V> implements SyncMap<K, V> {
   private final Object lock = new Object();
   private final IntFunction<Map<K, ExpungingValue<V>>> function;
-  private final int initialCapacity;
   private volatile Map<K, ExpungingValue<V>> read;
   private volatile boolean readAmended;
   private int readMisses;
@@ -53,25 +52,21 @@ import java.util.function.IntFunction;
   /* package */ SyncMapImpl(final @NonNull IntFunction<Map<K, ExpungingValue<V>>> function, final int initialCapacity) {
     this.function = function;
     this.read = function.apply(initialCapacity);
-    this.initialCapacity = initialCapacity;
   }
 
   @Override
   public int size() {
     this.promoteIfNeeded();
-    return this.getSize(this.read);
-  }
-
-  private int getSize(final @NonNull Map<K, ExpungingValue<V>> map) {
     int size = 0;
-    for(final ExpungingValue<V> value : map.values()) {
+    for(final ExpungingValue<V> value : this.read.values()) {
       if(value.exists()) size++;
     }
     return size;
   }
 
+  @Override
   @SuppressWarnings("SuspiciousMethodCalls")
-  private @Nullable ExpungingValue<V> getValue(final @Nullable Object key) {
+  public boolean containsKey(final @Nullable Object key) {
     ExpungingValue<V> entry = this.read.get(key);
     if(entry == null && this.readAmended) {
       synchronized(this.lock) {
@@ -84,18 +79,31 @@ import java.util.function.IntFunction;
         }
       }
     }
-    return entry;
-  }
-
-  @Override
-  public boolean containsKey(final @Nullable Object key) {
-    final ExpungingValue<V> entry = this.getValue(key);
     return entry != null && entry.exists();
   }
 
   @Override
+  public boolean containsValue(final @Nullable Object value) {
+    for(final Entry<K, V> entry : this.entrySet()) {
+      if(Objects.equals(entry.getValue(), value)) return true;
+    }
+    return false;
+  }
+
+  @Override
   public V get(final @Nullable Object key) {
-    final ExpungingValue<V> entry = this.getValue(key);
+    ExpungingValue<V> entry = this.read.get(key);
+    if(entry == null && this.readAmended) {
+      synchronized(this.lock) {
+        if((entry = this.read.get(key)) == null && this.readAmended && this.dirty != null) {
+          entry = this.dirty.get(key);
+          // The slow path should be avoided, even if the value does
+          // not match or is present. So we mark a miss, to eventually
+          // promote and take a faster path.
+          this.missLocked();
+        }
+      }
+    }
     return entry != null ? entry.get() : null;
   }
 
@@ -253,10 +261,10 @@ import java.util.function.IntFunction;
   @Override
   public void clear() {
     synchronized(this.lock) {
-      this.read = this.function.apply(this.initialCapacity);
+      this.read = this.function.apply(this.read.size());
+      this.readAmended = false;
       this.dirty = null;
       this.readMisses = 0;
-      this.readAmended = false;
     }
   }
 
@@ -269,7 +277,7 @@ import java.util.function.IntFunction;
   private void promoteIfNeeded() {
     if(this.readAmended) {
       synchronized(this.lock) {
-        if(this.readAmended && this.dirty != null) {
+        if(this.readAmended) {
           this.promoteLocked();
         }
       }
@@ -280,35 +288,32 @@ import java.util.function.IntFunction;
     if(this.dirty != null) {
       this.read = this.dirty;
     }
+    this.readAmended = false;
     this.dirty = null;
     this.readMisses = 0;
-    this.readAmended = false;
   }
 
   private void missLocked() {
-    this.readMisses++;
-    final int length = this.dirty != null ? this.dirty.size() : 0;
-    if(this.readMisses > length) {
+    if(++this.readMisses > (this.dirty != null ? this.dirty.size() : 0)) {
       this.promoteLocked();
     }
   }
 
   private void dirtyLocked() {
-    if(this.dirty == null) {
-      this.dirty = this.function.apply(this.read.size());
-      for(final Map.Entry<K, ExpungingValue<V>> entry : this.read.entrySet()) {
-        if(!entry.getValue().tryMarkExpunged()) {
-          this.dirty.put(entry.getKey(), entry.getValue());
-        }
+    if(this.dirty != null) return;
+    this.dirty = this.function.apply(this.read.size());
+    for(final Map.Entry<K, ExpungingValue<V>> entry : this.read.entrySet()) {
+      if(!entry.getValue().tryMarkExpunged()) {
+        this.dirty.put(entry.getKey(), entry.getValue());
       }
     }
   }
 
   @SuppressWarnings({"unchecked", "rawtypes"})
   private final static class ExpungingValueImpl<V> implements SyncMap.ExpungingValue<V> {
+    private static final AtomicReferenceFieldUpdater<ExpungingValueImpl, Object> VALUE_UPDATER = AtomicReferenceFieldUpdater
+      .newUpdater(ExpungingValueImpl.class, Object.class, "value");
     private static final Object EXPUNGED = new Object();
-    private static final AtomicReferenceFieldUpdater<ExpungingValueImpl, Object> valueUpdater =
-      AtomicReferenceFieldUpdater.newUpdater(ExpungingValueImpl.class, Object.class, "value");
     private volatile Object value;
 
     private ExpungingValueImpl(final @NonNull V value) {
@@ -317,21 +322,21 @@ import java.util.function.IntFunction;
 
     @Override
     public @Nullable V get() {
-      final Object value = ExpungingValueImpl.valueUpdater.get(this);
+      final Object value = ExpungingValueImpl.VALUE_UPDATER.get(this);
       return value == ExpungingValueImpl.EXPUNGED ? null : (V) value;
     }
 
     @Override
     public @NonNull Entry<Boolean, V> putIfAbsent(final @NonNull V value) {
       for(; ; ) {
-        final Object previous = ExpungingValueImpl.valueUpdater.get(this);
+        final Object previous = ExpungingValueImpl.VALUE_UPDATER.get(this);
         if(previous == ExpungingValueImpl.EXPUNGED) {
           return new AbstractMap.SimpleImmutableEntry<>(Boolean.FALSE, null);
         }
         if(previous != null) {
           return new AbstractMap.SimpleImmutableEntry<>(Boolean.TRUE, (V) previous);
         }
-        if(ExpungingValueImpl.valueUpdater.compareAndSet(this, null, value)) {
+        if(ExpungingValueImpl.VALUE_UPDATER.compareAndSet(this, null, value)) {
           return new AbstractMap.SimpleImmutableEntry<>(Boolean.TRUE, null);
         }
       }
@@ -339,60 +344,60 @@ import java.util.function.IntFunction;
 
     @Override
     public boolean expunged() {
-      return ExpungingValueImpl.valueUpdater.get(this) == ExpungingValueImpl.EXPUNGED;
+      return ExpungingValueImpl.VALUE_UPDATER.get(this) == ExpungingValueImpl.EXPUNGED;
     }
 
     @Override
     public boolean exists() {
-      final Object value = ExpungingValueImpl.valueUpdater.get(this);
+      final Object value = ExpungingValueImpl.VALUE_UPDATER.get(this);
       return value != null && value != ExpungingValueImpl.EXPUNGED;
     }
 
     @Override
     public void set(final @NonNull V value) {
-      ExpungingValueImpl.valueUpdater.set(this, value);
+      ExpungingValueImpl.VALUE_UPDATER.set(this, value);
     }
 
     @Override
     public boolean replace(final @NonNull Object compare, final @Nullable V newValue) {
       for(; ; ) {
-        final Object value = ExpungingValueImpl.valueUpdater.get(this);
+        final Object value = ExpungingValueImpl.VALUE_UPDATER.get(this);
         if(value == ExpungingValueImpl.EXPUNGED || !Objects.equals(value, compare)) return false;
-        if(ExpungingValueImpl.valueUpdater.compareAndSet(this, value, newValue)) return true;
+        if(ExpungingValueImpl.VALUE_UPDATER.compareAndSet(this, value, newValue)) return true;
       }
     }
 
     @Override
     public @Nullable V clear() {
       for(; ; ) {
-        final Object value = ExpungingValueImpl.valueUpdater.get(this);
+        final Object value = ExpungingValueImpl.VALUE_UPDATER.get(this);
         if(value == null || value == ExpungingValueImpl.EXPUNGED) return null;
-        if(ExpungingValueImpl.valueUpdater.compareAndSet(this, value, null)) return (V) value;
+        if(ExpungingValueImpl.VALUE_UPDATER.compareAndSet(this, value, null)) return (V) value;
       }
     }
 
     @Override
     public boolean trySet(final @NonNull V value) {
       for(; ; ) {
-        final Object present = ExpungingValueImpl.valueUpdater.get(this);
+        final Object present = ExpungingValueImpl.VALUE_UPDATER.get(this);
         if(present == ExpungingValueImpl.EXPUNGED) return false;
-        if(ExpungingValueImpl.valueUpdater.compareAndSet(this, present, value)) return true;
+        if(ExpungingValueImpl.VALUE_UPDATER.compareAndSet(this, present, value)) return true;
       }
     }
 
     @Override
     public boolean tryMarkExpunged() {
-      Object value = ExpungingValueImpl.valueUpdater.get(this);
+      Object value = ExpungingValueImpl.VALUE_UPDATER.get(this);
       while(value == null) {
-        if(ExpungingValueImpl.valueUpdater.compareAndSet(this, null, ExpungingValueImpl.EXPUNGED)) return true;
-        value = ExpungingValueImpl.valueUpdater.get(this);
+        if(ExpungingValueImpl.VALUE_UPDATER.compareAndSet(this, null, ExpungingValueImpl.EXPUNGED)) return true;
+        value = ExpungingValueImpl.VALUE_UPDATER.get(this);
       }
       return false;
     }
 
     @Override
     public boolean tryUnexpungeAndSet(final @Nullable V value) {
-      return ExpungingValueImpl.valueUpdater.compareAndSet(this, ExpungingValueImpl.EXPUNGED, value);
+      return ExpungingValueImpl.VALUE_UPDATER.compareAndSet(this, ExpungingValueImpl.EXPUNGED, value);
     }
 
     @Override

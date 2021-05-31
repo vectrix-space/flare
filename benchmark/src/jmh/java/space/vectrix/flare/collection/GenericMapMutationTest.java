@@ -22,7 +22,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package space.vectrix.flare;
+package space.vectrix.flare.collection;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -34,12 +34,16 @@ import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
+import space.vectrix.flare.Constants;
+import space.vectrix.flare.SyncMap;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.Throughput)
@@ -47,46 +51,56 @@ import java.util.concurrent.TimeUnit;
 @Warmup(iterations = Constants.WARM_UP_ITERATIONS, time = Constants.WARM_UP_ITERATIONS_TIME)
 @Measurement(iterations = Constants.ITERATIONS, time = Constants.ITERATIONS_TIME)
 @OutputTimeUnit(TimeUnit.SECONDS)
-public class GenericMapRetrievalTest {
+public class GenericMapMutationTest {
   private static final int SIZE = 1_000_000;
 
-  private final Map<Integer, String> concurrentHashMap = Generator.generate(new ConcurrentHashMap<>(), GenericMapRetrievalTest.SIZE);
-  private final Map<Integer, String> synchronizedMap = Generator.generate(Collections.synchronizedMap(new HashMap<>()), GenericMapRetrievalTest.SIZE);
-  private final Map<Integer, String> hashMap = Generator.generate(new HashMap<>(), GenericMapRetrievalTest.SIZE);
-  private final Map<Integer, String> syncMap = Generator.generate(SyncMap.hashmap(), GenericMapRetrievalTest.SIZE);
+  private final Map<Integer, Boolean> concurrentHashMap = new ConcurrentHashMap<>();
+  private final Map<Integer, Boolean> synchronizedMap = Collections.synchronizedMap(new HashMap<>());
+  private final Map<Integer, Boolean> syncMap = SyncMap.hashmap();
 
-  // Benchmark                                   Mode  Cnt   Score   Error  Units
-  // GenericMapRetrievalTest.hashMap            thrpt    5  72.610 ± 0.869  ops/s
-  // GenericMapRetrievalTest.concurrentHashMap  thrpt    5  72.391 ± 4.126  ops/s
-  // GenericMapRetrievalTest.syncMap            thrpt    5  64.914 ± 0.516  ops/s
-  // GenericMapRetrievalTest.synchronizedMap    thrpt    5  44.105 ± 0.716  ops/s
+  private final AtomicInteger counter = new AtomicInteger();
+
+  // Benchmark                                             Mode  Cnt    Score   Error  Units
+  // GenericMapMutationTest.synchronizedMap               thrpt    5   54.033 ± 0.256  ops/s
+  // GenericMapMutationTest.syncMap                       thrpt    5   48.341 ± 0.204  ops/s
+  // GenericMapMutationTest.concurrentMap                 thrpt    5   41.216 ± 0.212  ops/s
 
   @Benchmark
-  public void concurrentHashMap(Blackhole blackhole) {
-    for(long i = 0; i < GenericMapRetrievalTest.SIZE; i++) {
-      final String result = this.concurrentHashMap.get(i);
-      blackhole.consume(result);
+  public void concurrentMap(Blackhole blackhole) {
+    final Random shouldPut = new Random();
+    for(int i = 0; i < GenericMapMutationTest.SIZE; i++) {
+      int value = this.counter.get();
+      if(shouldPut.nextBoolean()) {
+        blackhole.consume(this.concurrentHashMap.put(value, Boolean.TRUE));
+      } else {
+        blackhole.consume(this.concurrentHashMap.remove(value));
+      }
     }
   }
 
   @Benchmark
   public void synchronizedMap(Blackhole blackhole) {
-    for(long i = 0; i < GenericMapRetrievalTest.SIZE; i++) {
-      blackhole.consume(this.synchronizedMap.get(i));
-    }
-  }
-
-  @Benchmark
-  public void hashMap(Blackhole blackhole) {
-    for(long i = 0; i < GenericMapRetrievalTest.SIZE; i++) {
-      blackhole.consume(this.hashMap.get(i));
+    final Random shouldPut = new Random();
+    for(int i = 0; i < GenericMapMutationTest.SIZE; i++) {
+      int value = this.counter.get();
+      if(shouldPut.nextBoolean()) {
+        blackhole.consume(this.synchronizedMap.put(value, Boolean.TRUE));
+      } else {
+        blackhole.consume(this.synchronizedMap.remove(value));
+      }
     }
   }
 
   @Benchmark
   public void syncMap(Blackhole blackhole) {
-    for(long i = 0; i < GenericMapRetrievalTest.SIZE; i++) {
-      blackhole.consume(this.syncMap.get(i));
+    final Random shouldPut = new Random();
+    for(int i = 0; i < GenericMapMutationTest.SIZE; i++) {
+      int value = this.counter.get();
+      if(shouldPut.nextBoolean()) {
+        blackhole.consume(this.syncMap.put(value, Boolean.TRUE));
+      } else {
+        blackhole.consume(this.syncMap.remove(value));
+      }
     }
   }
 }

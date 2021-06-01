@@ -59,8 +59,8 @@ public class PrimitiveMapMutationTest {
   private final AtomicInteger counter = new AtomicInteger();
 
   // Benchmark                                             Mode  Cnt   Score   Error  Units
-  // PrimitiveMapMutationTest.synchronizedMap             thrpt    5  81.305 ± 0.518  ops/s
-  // PrimitiveMapMutationTest.syncMap                     thrpt    5  69.260 ± 0.410  ops/s
+  // PrimitiveMapMutationTest.synchronizedMap             thrpt    5  78.835 ± 0.807  ops/s
+  // PrimitiveMapMutationTest.syncMap                     thrpt    5  69.582 ± 0.748  ops/s
 
   @Benchmark
   public void synchronizedMap(Blackhole blackhole) {

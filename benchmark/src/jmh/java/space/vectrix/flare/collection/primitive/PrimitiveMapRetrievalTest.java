@@ -41,7 +41,6 @@ import space.vectrix.flare.Constants;
 import space.vectrix.flare.Generator;
 import space.vectrix.flare.fastutil.Int2ObjectSyncMap;
 
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @State(Scope.Benchmark)
@@ -54,11 +53,11 @@ public class PrimitiveMapRetrievalTest {
   private static final int SIZE = 1_000_000;
 
   private final Int2ObjectMap<String> synchronizedMap = Generator.generate(Int2ObjectMaps.synchronize(new Int2ObjectOpenHashMap<>()), PrimitiveMapRetrievalTest.SIZE);
-  private final Map<Integer, String> syncMap = Generator.generate(Int2ObjectSyncMap.hashmap(), PrimitiveMapRetrievalTest.SIZE);
+  private final Int2ObjectMap<String> syncMap = Generator.generate(Int2ObjectSyncMap.hashmap(), PrimitiveMapRetrievalTest.SIZE);
 
   // Benchmark                                             Mode  Cnt   Score   Error  Units
-  // PrimitiveMapRetrievalTest.synchronizedMap            thrpt    5  33.160 ± 0.058  ops/s
-  // PrimitiveMapRetrievalTest.syncMap                    thrpt    5  13.727 ± 0.098  ops/s
+  // PrimitiveMapRetrievalTest.synchronizedMap            thrpt    5  33.011 ± 0.145  ops/s
+  // PrimitiveMapRetrievalTest.syncMap                    thrpt    5  20.566 ± 0.075  ops/s
 
   @Benchmark
   public void synchronizedMap(Blackhole blackhole) {

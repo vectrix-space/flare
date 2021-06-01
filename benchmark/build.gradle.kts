@@ -1,14 +1,5 @@
 plugins {
-  id("java")
   id("me.champeau.jmh") version "0.6.4"
-}
-
-group = "space.vectrix.flare"
-version = "0.2.0-SNAPSHOT"
-
-repositories {
-  mavenLocal()
-  mavenCentral()
 }
 
 dependencies {
@@ -27,4 +18,9 @@ jmh {
 
   // Uncomment to collect GC metrics
   // profilers = ['gc']
+}
+
+// Don't publish benchmark
+tasks.withType<PublishToMavenRepository>().configureEach {
+  onlyIf { false }
 }

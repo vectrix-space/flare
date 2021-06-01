@@ -24,12 +24,20 @@
  */
 package space.vectrix.flare;
 
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import org.checkerframework.checker.nullness.qual.NonNull;
 
 import java.util.Map;
 
 public class Generator {
   public static @NonNull Map<Integer, String> generate(final @NonNull Map<Integer, String> map, final int entries) {
+    for(int i = 0; i < entries; i++) {
+      map.put(i, String.valueOf(i));
+    }
+    return map;
+  }
+
+  public static @NonNull Int2ObjectMap<String> generate(final @NonNull Int2ObjectMap<String> map, final int entries) {
     for(int i = 0; i < entries; i++) {
       map.put(i, String.valueOf(i));
     }

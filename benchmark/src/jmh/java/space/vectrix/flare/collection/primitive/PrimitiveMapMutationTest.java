@@ -22,8 +22,11 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package space.vectrix.flare.collection;
+package space.vectrix.flare.collection.primitive;
 
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -32,18 +35,14 @@ import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
-import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 import space.vectrix.flare.Constants;
-import space.vectrix.flare.Generator;
-import space.vectrix.flare.SyncMap;
+import space.vectrix.flare.fastutil.Int2ObjectSyncMap;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.Throughput)
@@ -51,40 +50,41 @@ import java.util.concurrent.TimeUnit;
 @Warmup(iterations = Constants.WARM_UP_ITERATIONS, time = Constants.WARM_UP_ITERATIONS_TIME)
 @Measurement(iterations = Constants.ITERATIONS, time = Constants.ITERATIONS_TIME)
 @OutputTimeUnit(TimeUnit.SECONDS)
-public class ConcurrentGenericMapRetrievalTest {
+public class PrimitiveMapMutationTest {
   private static final int SIZE = 1_000_000;
 
-  private final Map<Integer, String> concurrentHashMap = Generator.generate(new ConcurrentHashMap<>(), ConcurrentGenericMapRetrievalTest.SIZE);
-  private final Map<Integer, String> synchronizedMap = Generator.generate(Collections.synchronizedMap(new HashMap<>()), ConcurrentGenericMapRetrievalTest.SIZE);
-  private final Map<Integer, String> syncMap = Generator.generate(SyncMap.hashmap(), ConcurrentGenericMapRetrievalTest.SIZE);
+  private final Int2ObjectMap<Boolean> synchronizedMap = Int2ObjectMaps.synchronize(new Int2ObjectOpenHashMap<>());
+  private final Int2ObjectMap<Boolean> syncMap = Int2ObjectSyncMap.hashmap();
+
+  private final AtomicInteger counter = new AtomicInteger();
 
   // Benchmark                                             Mode  Cnt    Score   Error  Units
-  // ConcurrentGenericMapRetrievalTest.concurrentHashMap  thrpt    5  168.732 ± 4.789  ops/s
-  // ConcurrentGenericMapRetrievalTest.syncMap            thrpt    5  146.762 ± 4.258  ops/s
-  // ConcurrentGenericMapRetrievalTest.synchronizedMap    thrpt    5   13.434 ± 0.142  ops/s
+  //
+  //
 
   @Benchmark
-  @Threads(50)
-  public void concurrentHashMap(Blackhole blackhole) {
-    for(long i = 0; i < ConcurrentGenericMapRetrievalTest.SIZE; i++) {
-      final String result = this.concurrentHashMap.get(i);
-      blackhole.consume(result);
-    }
-  }
-
-  @Benchmark
-  @Threads(50)
   public void synchronizedMap(Blackhole blackhole) {
-    for(long i = 0; i < ConcurrentGenericMapRetrievalTest.SIZE; i++) {
-      blackhole.consume(this.synchronizedMap.get(i));
+    final Random shouldPut = new Random();
+    for(int i = 0; i < PrimitiveMapMutationTest.SIZE; i++) {
+      int value = this.counter.get();
+      if(shouldPut.nextBoolean()) {
+        blackhole.consume(this.synchronizedMap.put(value, Boolean.TRUE));
+      } else {
+        blackhole.consume(this.synchronizedMap.remove(value));
+      }
     }
   }
 
   @Benchmark
-  @Threads(50)
   public void syncMap(Blackhole blackhole) {
-    for(long i = 0; i < ConcurrentGenericMapRetrievalTest.SIZE; i++) {
-      blackhole.consume(this.syncMap.get(i));
+    final Random shouldPut = new Random();
+    for(int i = 0; i < PrimitiveMapMutationTest.SIZE; i++) {
+      int value = this.counter.get();
+      if(shouldPut.nextBoolean()) {
+        blackhole.consume(this.syncMap.put(value, Boolean.TRUE));
+      } else {
+        blackhole.consume(this.syncMap.remove(value));
+      }
     }
   }
 }

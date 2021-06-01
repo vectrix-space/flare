@@ -59,9 +59,9 @@ public class ConcurrentPrimitiveMapMutationTest {
 
   private final AtomicInteger counter = new AtomicInteger();
 
-  // Benchmark                                             Mode  Cnt    Score   Error  Units
-  //
-  //
+  // Benchmark                                             Mode  Cnt   Score   Error  Units
+  // ConcurrentPrimitiveMapMutationTest.syncMap           thrpt    5  27.115 ± 0.847  ops/s
+  // ConcurrentPrimitiveMapMutationTest.synchronizedMap   thrpt    5  19.653 ± 0.395  ops/s
 
   @Benchmark
   @Threads(50)

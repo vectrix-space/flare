@@ -61,7 +61,7 @@ public class ConcurrentPrimitiveMapRetrievalTest {
   // ConcurrentPrimitiveMapRetrievalTest.synchronizedMap  thrpt    5  12.924 ± 0.381  ops/s
 
   @Benchmark
-  @Threads(50)
+  @Threads(Constants.THREADS)
   public void synchronizedMap(Blackhole blackhole) {
     for(int i = 0; i < ConcurrentPrimitiveMapRetrievalTest.SIZE; i++) {
       blackhole.consume(this.synchronizedMap.get(i));
@@ -69,7 +69,7 @@ public class ConcurrentPrimitiveMapRetrievalTest {
   }
 
   @Benchmark
-  @Threads(50)
+  @Threads(Constants.THREADS)
   public void syncMap(Blackhole blackhole) {
     for(int i = 0; i < ConcurrentPrimitiveMapRetrievalTest.SIZE; i++) {
       blackhole.consume(this.syncMap.get(i));

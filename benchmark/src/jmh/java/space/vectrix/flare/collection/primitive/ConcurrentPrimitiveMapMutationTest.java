@@ -64,7 +64,7 @@ public class ConcurrentPrimitiveMapMutationTest {
   // ConcurrentPrimitiveMapMutationTest.synchronizedMap   thrpt    5  18.763 ± 0.274  ops/s
 
   @Benchmark
-  @Threads(50)
+  @Threads(Constants.THREADS)
   public void synchronizedMap(Blackhole blackhole) {
     final Random shouldPut = new Random();
     for(int i = 0; i < ConcurrentPrimitiveMapMutationTest.SIZE; i++) {
@@ -78,7 +78,7 @@ public class ConcurrentPrimitiveMapMutationTest {
   }
 
   @Benchmark
-  @Threads(50)
+  @Threads(Constants.THREADS)
   public void syncMap(Blackhole blackhole) {
     final Random shouldPut = new Random();
     for(int i = 0; i < ConcurrentPrimitiveMapMutationTest.SIZE; i++) {

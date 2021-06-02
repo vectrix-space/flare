@@ -14,10 +14,10 @@ jmh {
   // https://github.com/melix/jmh-gradle-plugin
 
   // Uncomment to run specific benchmarks
-  // include = ['SampleBenchmark']
+  // includes.add("SampleTest")
 
   // Uncomment to collect GC metrics
-  // profilers = ['gc']
+  // profilers.add("gc")
 }
 
 // Don't publish benchmark

@@ -64,7 +64,7 @@ public class ConcurrentGenericMapRetrievalTest {
   // ConcurrentGenericMapRetrievalTest.synchronizedMap    thrpt    5   13.434 ± 0.142  ops/s
 
   @Benchmark
-  @Threads(50)
+  @Threads(Constants.THREADS)
   public void concurrentHashMap(Blackhole blackhole) {
     for(int i = 0; i < ConcurrentGenericMapRetrievalTest.SIZE; i++) {
       final String result = this.concurrentHashMap.get(i);
@@ -73,7 +73,7 @@ public class ConcurrentGenericMapRetrievalTest {
   }
 
   @Benchmark
-  @Threads(50)
+  @Threads(Constants.THREADS)
   public void synchronizedMap(Blackhole blackhole) {
     for(int i = 0; i < ConcurrentGenericMapRetrievalTest.SIZE; i++) {
       blackhole.consume(this.synchronizedMap.get(i));
@@ -81,7 +81,7 @@ public class ConcurrentGenericMapRetrievalTest {
   }
 
   @Benchmark
-  @Threads(50)
+  @Threads(Constants.THREADS)
   public void syncMap(Blackhole blackhole) {
     for(int i = 0; i < ConcurrentGenericMapRetrievalTest.SIZE; i++) {
       blackhole.consume(this.syncMap.get(i));

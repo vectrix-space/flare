@@ -30,4 +30,5 @@ public class Constants {
   public static final int WARM_UP_ITERATIONS_TIME = 10;
   public static final int ITERATIONS = 5;
   public static final int ITERATIONS_TIME = 4;
+  public static final int THREADS = 50;
 }

@@ -1,0 +1,10 @@
+name: "benchmark"
+
+on: ["pull_request", "push"]
+
+jobs:
+  build:
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: "benchmark"
+        run: "./gradlew jmh"

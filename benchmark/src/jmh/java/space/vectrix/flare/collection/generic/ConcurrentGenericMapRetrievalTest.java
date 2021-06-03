@@ -58,11 +58,6 @@ public class ConcurrentGenericMapRetrievalTest {
   private final Map<Integer, String> synchronizedMap = Generator.generate(Collections.synchronizedMap(new HashMap<>()), ConcurrentGenericMapRetrievalTest.SIZE);
   private final Map<Integer, String> syncMap = Generator.generate(SyncMap.hashmap(), ConcurrentGenericMapRetrievalTest.SIZE);
 
-  // Benchmark                                             Mode  Cnt    Score   Error  Units
-  // ConcurrentGenericMapRetrievalTest.concurrentHashMap  thrpt    5  168.732 ± 4.789  ops/s
-  // ConcurrentGenericMapRetrievalTest.syncMap            thrpt    5  146.762 ± 4.258  ops/s
-  // ConcurrentGenericMapRetrievalTest.synchronizedMap    thrpt    5   13.434 ± 0.142  ops/s
-
   @Benchmark
   @Threads(Constants.THREADS)
   public void concurrentHashMap(Blackhole blackhole) {

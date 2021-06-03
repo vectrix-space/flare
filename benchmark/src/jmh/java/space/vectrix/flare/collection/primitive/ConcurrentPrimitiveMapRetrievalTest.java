@@ -56,10 +56,6 @@ public class ConcurrentPrimitiveMapRetrievalTest {
   private final Int2ObjectMap<String> synchronizedMap = Generator.generate(Int2ObjectMaps.synchronize(new Int2ObjectOpenHashMap<>()), ConcurrentPrimitiveMapRetrievalTest.SIZE);
   private final Int2ObjectMap<String> syncMap = Generator.generate(Int2ObjectSyncMap.hashmap(), ConcurrentPrimitiveMapRetrievalTest.SIZE);
 
-  // Benchmark                                             Mode  Cnt   Score   Error  Units
-  // ConcurrentPrimitiveMapRetrievalTest.syncMap          thrpt    5  60.768 ± 1.589  ops/s
-  // ConcurrentPrimitiveMapRetrievalTest.synchronizedMap  thrpt    5  12.924 ± 0.381  ops/s
-
   @Benchmark
   @Threads(Constants.THREADS)
   public void synchronizedMap(Blackhole blackhole) {

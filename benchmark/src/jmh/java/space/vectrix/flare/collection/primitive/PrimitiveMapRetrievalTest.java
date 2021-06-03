@@ -55,10 +55,6 @@ public class PrimitiveMapRetrievalTest {
   private final Int2ObjectMap<String> synchronizedMap = Generator.generate(Int2ObjectMaps.synchronize(new Int2ObjectOpenHashMap<>()), PrimitiveMapRetrievalTest.SIZE);
   private final Int2ObjectMap<String> syncMap = Generator.generate(Int2ObjectSyncMap.hashmap(), PrimitiveMapRetrievalTest.SIZE);
 
-  // Benchmark                                             Mode  Cnt   Score   Error  Units
-  // PrimitiveMapRetrievalTest.synchronizedMap            thrpt    5  33.011 ± 0.145  ops/s
-  // PrimitiveMapRetrievalTest.syncMap                    thrpt    5  20.566 ± 0.075  ops/s
-
   @Benchmark
   public void synchronizedMap(Blackhole blackhole) {
     for(int i = 0; i < PrimitiveMapRetrievalTest.SIZE; i++) {

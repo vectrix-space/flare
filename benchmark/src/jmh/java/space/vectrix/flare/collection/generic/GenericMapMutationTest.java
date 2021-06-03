@@ -60,11 +60,6 @@ public class GenericMapMutationTest {
 
   private final AtomicInteger counter = new AtomicInteger();
 
-  // Benchmark                                             Mode  Cnt    Score   Error  Units
-  // GenericMapMutationTest.synchronizedMap               thrpt    5   54.033 ± 0.256  ops/s
-  // GenericMapMutationTest.syncMap                       thrpt    5   48.341 ± 0.204  ops/s
-  // GenericMapMutationTest.concurrentMap                 thrpt    5   41.216 ± 0.212  ops/s
-
   @Benchmark
   public void concurrentMap(Blackhole blackhole) {
     final Random shouldPut = new Random();

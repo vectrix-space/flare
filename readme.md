@@ -10,7 +10,7 @@ Useful thread-safe collections with performance in mind.
 ## Building
 __Note:__ If you do not have [Gradle] installed then use `./gradlew` for Unix systems or Git Bash and gradlew.bat for Windows systems in place of any 'gradle' command.
 
-In order to build Flare you simply need to run the `gradle` command. You can find the compiled JAR file in `./flare/build/libs` labeled 'flare-0.1.0.jar'.
+In order to build Flare you simply need to run the `gradle` command. You can find the compiled JAR file in `./flare/build/libs` labeled 'flare-0.2.0.jar'.
 
 ## Dependency
 
@@ -19,7 +19,7 @@ In order to build Flare you simply need to run the `gradle` command. You can fin
 <dependency>
   <groupId>space.vectrix.flare</groupId>
   <artifactId>flare</artifactId>
-  <version>0.1.1</version>
+  <version>0.2.0</version>
 </dependency>
 ```
 
@@ -30,7 +30,7 @@ repositories {
 }
 
 dependencies {
-  compile "space.vectrix.flare:flare:0.1.1"
+  compile "space.vectrix.flare:flare:0.2.0"
 }
 ```
 

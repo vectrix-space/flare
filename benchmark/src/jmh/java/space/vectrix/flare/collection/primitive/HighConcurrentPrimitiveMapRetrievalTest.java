@@ -39,11 +39,10 @@ import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 import space.vectrix.flare.Constants;
+import space.vectrix.flare.Generator;
 import space.vectrix.flare.fastutil.Int2ObjectSyncMap;
 
-import java.util.Random;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.Throughput)
@@ -51,40 +50,25 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Warmup(iterations = Constants.WARM_UP_ITERATIONS, time = Constants.WARM_UP_ITERATIONS_TIME)
 @Measurement(iterations = Constants.ITERATIONS, time = Constants.ITERATIONS_TIME)
 @OutputTimeUnit(TimeUnit.SECONDS)
-public class ConcurrentPrimitiveMapMutationTest {
+public class HighConcurrentPrimitiveMapRetrievalTest {
   private static final int SIZE = 1_000_000;
 
-  private final Int2ObjectMap<Boolean> synchronizedMap = Int2ObjectMaps.synchronize(new Int2ObjectOpenHashMap<>());
-  private final Int2ObjectMap<Boolean> syncMap = Int2ObjectSyncMap.hashmap();
-
-  private final AtomicInteger counter = new AtomicInteger();
+  private final Int2ObjectMap<String> synchronizedMap = Generator.generate(Int2ObjectMaps.synchronize(new Int2ObjectOpenHashMap<>()), HighConcurrentPrimitiveMapRetrievalTest.SIZE);
+  private final Int2ObjectMap<String> syncMap = Generator.generate(Int2ObjectSyncMap.hashmap(), HighConcurrentPrimitiveMapRetrievalTest.SIZE);
 
   @Benchmark
-  @Threads(Constants.THREADS)
+  @Threads(Constants.HIGH_THREADS)
   public void synchronizedMap(Blackhole blackhole) {
-    final Random shouldPut = new Random();
-    for(int i = 0; i < ConcurrentPrimitiveMapMutationTest.SIZE; i++) {
-      int value = this.counter.get();
-      if(shouldPut.nextBoolean()) {
-        blackhole.consume(this.synchronizedMap.put(value, Boolean.TRUE));
-      } else {
-        blackhole.consume(this.synchronizedMap.remove(value));
-      }
+    for(int i = 0; i < HighConcurrentPrimitiveMapRetrievalTest.SIZE; i++) {
+      blackhole.consume(this.synchronizedMap.get(i));
     }
   }
 
   @Benchmark
-  @Threads(Constants.THREADS)
+  @Threads(Constants.HIGH_THREADS)
   public void syncMap(Blackhole blackhole) {
-    final Random shouldPut = new Random();
-    for(int i = 0; i < ConcurrentPrimitiveMapMutationTest.SIZE; i++) {
-      int value = this.counter.get();
-      if(shouldPut.nextBoolean()) {
-        blackhole.consume(this.syncMap.put(value, Boolean.TRUE));
-      } else {
-        blackhole.consume(this.syncMap.remove(value));
-      }
+    for(int i = 0; i < HighConcurrentPrimitiveMapRetrievalTest.SIZE; i++) {
+      blackhole.consume(this.syncMap.get(i));
     }
   }
 }
-

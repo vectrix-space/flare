@@ -22,11 +22,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package space.vectrix.flare.collection.primitive;
+package space.vectrix.flare.collection.generic;
 
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -40,8 +37,12 @@ import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 import space.vectrix.flare.Constants;
 import space.vectrix.flare.Generator;
-import space.vectrix.flare.fastutil.Int2ObjectSyncMap;
+import space.vectrix.flare.SyncMap;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 @State(Scope.Benchmark)
@@ -50,24 +51,34 @@ import java.util.concurrent.TimeUnit;
 @Warmup(iterations = Constants.WARM_UP_ITERATIONS, time = Constants.WARM_UP_ITERATIONS_TIME)
 @Measurement(iterations = Constants.ITERATIONS, time = Constants.ITERATIONS_TIME)
 @OutputTimeUnit(TimeUnit.SECONDS)
-public class ConcurrentPrimitiveMapRetrievalTest {
+public class HighConcurrentGenericMapRetrievalTest {
   private static final int SIZE = 1_000_000;
 
-  private final Int2ObjectMap<String> synchronizedMap = Generator.generate(Int2ObjectMaps.synchronize(new Int2ObjectOpenHashMap<>()), ConcurrentPrimitiveMapRetrievalTest.SIZE);
-  private final Int2ObjectMap<String> syncMap = Generator.generate(Int2ObjectSyncMap.hashmap(), ConcurrentPrimitiveMapRetrievalTest.SIZE);
+  private final Map<Integer, String> concurrentHashMap = Generator.generate(new ConcurrentHashMap<>(), HighConcurrentGenericMapRetrievalTest.SIZE);
+  private final Map<Integer, String> synchronizedMap = Generator.generate(Collections.synchronizedMap(new HashMap<>()), HighConcurrentGenericMapRetrievalTest.SIZE);
+  private final Map<Integer, String> syncMap = Generator.generate(SyncMap.hashmap(), HighConcurrentGenericMapRetrievalTest.SIZE);
 
   @Benchmark
-  @Threads(Constants.THREADS)
+  @Threads(Constants.HIGH_THREADS)
+  public void concurrentHashMap(Blackhole blackhole) {
+    for(int i = 0; i < HighConcurrentGenericMapRetrievalTest.SIZE; i++) {
+      final String result = this.concurrentHashMap.get(i);
+      blackhole.consume(result);
+    }
+  }
+
+  @Benchmark
+  @Threads(Constants.HIGH_THREADS)
   public void synchronizedMap(Blackhole blackhole) {
-    for(int i = 0; i < ConcurrentPrimitiveMapRetrievalTest.SIZE; i++) {
+    for(int i = 0; i < HighConcurrentGenericMapRetrievalTest.SIZE; i++) {
       blackhole.consume(this.synchronizedMap.get(i));
     }
   }
 
   @Benchmark
-  @Threads(Constants.THREADS)
+  @Threads(Constants.HIGH_THREADS)
   public void syncMap(Blackhole blackhole) {
-    for(int i = 0; i < ConcurrentPrimitiveMapRetrievalTest.SIZE; i++) {
+    for(int i = 0; i < HighConcurrentGenericMapRetrievalTest.SIZE; i++) {
       blackhole.consume(this.syncMap.get(i));
     }
   }

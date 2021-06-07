@@ -22,8 +22,11 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package space.vectrix.flare.collection.generic;
+package space.vectrix.flare.collection.primitive;
 
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -36,14 +39,11 @@ import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 import space.vectrix.flare.Constants;
-import space.vectrix.flare.Generator;
-import space.vectrix.flare.SyncMap;
+import space.vectrix.flare.fastutil.Int2ObjectSyncMap;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.Throughput)
@@ -51,35 +51,40 @@ import java.util.concurrent.TimeUnit;
 @Warmup(iterations = Constants.WARM_UP_ITERATIONS, time = Constants.WARM_UP_ITERATIONS_TIME)
 @Measurement(iterations = Constants.ITERATIONS, time = Constants.ITERATIONS_TIME)
 @OutputTimeUnit(TimeUnit.SECONDS)
-public class ConcurrentGenericMapRetrievalTest {
+public class LowConcurrentPrimitiveMapMutationTest {
   private static final int SIZE = 1_000_000;
 
-  private final Map<Integer, String> concurrentHashMap = Generator.generate(new ConcurrentHashMap<>(), ConcurrentGenericMapRetrievalTest.SIZE);
-  private final Map<Integer, String> synchronizedMap = Generator.generate(Collections.synchronizedMap(new HashMap<>()), ConcurrentGenericMapRetrievalTest.SIZE);
-  private final Map<Integer, String> syncMap = Generator.generate(SyncMap.hashmap(), ConcurrentGenericMapRetrievalTest.SIZE);
+  private final Int2ObjectMap<Boolean> synchronizedMap = Int2ObjectMaps.synchronize(new Int2ObjectOpenHashMap<>());
+  private final Int2ObjectMap<Boolean> syncMap = Int2ObjectSyncMap.hashmap();
+
+  private final AtomicInteger counter = new AtomicInteger();
 
   @Benchmark
-  @Threads(Constants.THREADS)
-  public void concurrentHashMap(Blackhole blackhole) {
-    for(int i = 0; i < ConcurrentGenericMapRetrievalTest.SIZE; i++) {
-      final String result = this.concurrentHashMap.get(i);
-      blackhole.consume(result);
-    }
-  }
-
-  @Benchmark
-  @Threads(Constants.THREADS)
+  @Threads(Constants.LOW_THREADS)
   public void synchronizedMap(Blackhole blackhole) {
-    for(int i = 0; i < ConcurrentGenericMapRetrievalTest.SIZE; i++) {
-      blackhole.consume(this.synchronizedMap.get(i));
+    final Random shouldPut = new Random();
+    for(int i = 0; i < LowConcurrentPrimitiveMapMutationTest.SIZE; i++) {
+      int value = this.counter.get();
+      if(shouldPut.nextBoolean()) {
+        blackhole.consume(this.synchronizedMap.put(value, Boolean.TRUE));
+      } else {
+        blackhole.consume(this.synchronizedMap.remove(value));
+      }
     }
   }
 
   @Benchmark
-  @Threads(Constants.THREADS)
+  @Threads(Constants.LOW_THREADS)
   public void syncMap(Blackhole blackhole) {
-    for(int i = 0; i < ConcurrentGenericMapRetrievalTest.SIZE; i++) {
-      blackhole.consume(this.syncMap.get(i));
+    final Random shouldPut = new Random();
+    for(int i = 0; i < LowConcurrentPrimitiveMapMutationTest.SIZE; i++) {
+      int value = this.counter.get();
+      if(shouldPut.nextBoolean()) {
+        blackhole.consume(this.syncMap.put(value, Boolean.TRUE));
+      } else {
+        blackhole.consume(this.syncMap.remove(value));
+      }
     }
   }
 }
+

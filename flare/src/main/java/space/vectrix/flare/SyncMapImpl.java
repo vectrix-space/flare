@@ -41,13 +41,36 @@ import java.util.function.Consumer;
 import java.util.function.IntFunction;
 
 /* package */ final class SyncMapImpl<K, V> extends AbstractMap<K, V> implements SyncMap<K, V> {
-  private final Object lock = new Object();
+  /**
+   * A single implicit lock, when dealing with {@code dirty} mutations.
+   */
+  private transient final Object lock = new Object();
+
+  /**
+   * The read only map, that does not require a lock and does not allow mutations.
+   */
+  private transient volatile Map<K, ExpungingValue<V>> read;
+
+  /**
+   * Represents whether the {@code dirty} map has changes the {@code read} map,
+   * does not have yet.
+   */
+  private transient volatile boolean amended;
+
+  /**
+   * The read/write map, that requires a lock and allows mutations.
+   */
+  private transient Map<K, ExpungingValue<V>> dirty;
+
+  /**
+   * Represents the amount of times an attempt has been made to access the
+   * {@code dirty} map while {@code amended} is {@code true}.
+   */
+  private transient int misses;
+
+  private transient EntrySetView entrySet;
+
   private final IntFunction<Map<K, ExpungingValue<V>>> function;
-  private volatile Map<K, ExpungingValue<V>> read;
-  private volatile boolean readAmended;
-  private int readMisses;
-  private Map<K, ExpungingValue<V>> dirty;
-  private EntrySet entrySet;
 
   /* package */ SyncMapImpl(final @NonNull IntFunction<Map<K, ExpungingValue<V>>> function, final int initialCapacity) {
     this.function = function;
@@ -68,9 +91,9 @@ import java.util.function.IntFunction;
   @SuppressWarnings("SuspiciousMethodCalls")
   public boolean containsKey(final @Nullable Object key) {
     ExpungingValue<V> entry = this.read.get(key);
-    if(entry == null && this.readAmended) {
+    if(entry == null && this.amended) {
       synchronized(this.lock) {
-        if((entry = this.read.get(key)) == null && this.readAmended && this.dirty != null) {
+        if((entry = this.read.get(key)) == null && this.amended && this.dirty != null) {
           entry = this.dirty.get(key);
           // The slow path should be avoided, even if the value does
           // not match or is present. So we mark a miss, to eventually
@@ -93,9 +116,9 @@ import java.util.function.IntFunction;
   @Override
   public V get(final @Nullable Object key) {
     ExpungingValue<V> entry = this.read.get(key);
-    if(entry == null && this.readAmended) {
+    if(entry == null && this.amended) {
       synchronized(this.lock) {
-        if((entry = this.read.get(key)) == null && this.readAmended && this.dirty != null) {
+        if((entry = this.read.get(key)) == null && this.amended && this.dirty != null) {
           entry = this.dirty.get(key);
           // The slow path should be avoided, even if the value does
           // not match or is present. So we mark a miss, to eventually
@@ -134,9 +157,9 @@ import java.util.function.IntFunction;
           entry.set(value);
           this.missLocked();
         } else if(!present) {
-          if(!this.readAmended) {
+          if(!this.amended) {
             this.dirtyLocked();
-            this.readAmended = true;
+            this.amended = true;
           }
           if(this.dirty != null) {
             entry = this.dirty.put(key, new ExpungingValueImpl<>(value));
@@ -154,9 +177,9 @@ import java.util.function.IntFunction;
   @SuppressWarnings("SuspiciousMethodCalls")
   public V remove(final @Nullable Object key) {
     ExpungingValue<V> entry = this.read.get(key);
-    if(entry == null && this.readAmended) {
+    if(entry == null && this.amended) {
       synchronized(this.lock) {
-        if((entry = this.read.get(key)) == null && this.readAmended && this.dirty != null) {
+        if((entry = this.read.get(key)) == null && this.amended && this.dirty != null) {
           entry = this.dirty.remove(key);
           // The slow path should be avoided, even if the value does
           // not match or is present. So we mark a miss, to eventually
@@ -173,9 +196,9 @@ import java.util.function.IntFunction;
   public boolean remove(final @Nullable Object key, final @NonNull Object value) {
     requireNonNull(value, "value");
     ExpungingValue<V> entry = this.read.get(key);
-    if(entry == null && this.readAmended) {
+    if(entry == null && this.amended) {
       synchronized(this.lock) {
-        if((entry = this.read.get(key)) == null && this.readAmended && this.dirty != null) {
+        if((entry = this.read.get(key)) == null && this.amended && this.dirty != null) {
           if((entry = this.dirty.get(key)) != null && entry.replace(value, null)) {
             entry = this.dirty.remove(key);
           } else {
@@ -214,9 +237,9 @@ import java.util.function.IntFunction;
           result = entry.putIfAbsent(value);
           this.missLocked();
         } else {
-          if(!this.readAmended) {
+          if(!this.amended) {
             this.dirtyLocked();
-            this.readAmended = true;
+            this.amended = true;
           }
           if(this.dirty != null) {
             this.dirty.put(key, new ExpungingValueImpl<>(value));
@@ -232,7 +255,7 @@ import java.util.function.IntFunction;
     requireNonNull(value, "value");
     final ExpungingValue<V> entry = this.read.get(key);
     final V previous = entry != null ? entry.get() : null;
-    if((entry != null && entry.trySet(value)) || !this.readAmended) return previous;
+    if((entry != null && entry.trySet(value)) || !this.amended) return previous;
     return this.putDirty(key, value, true);
   }
 
@@ -241,9 +264,9 @@ import java.util.function.IntFunction;
     requireNonNull(oldValue, "oldValue");
     requireNonNull(newValue, "newValue");
     ExpungingValue<V> entry = this.read.get(key);
-    if(entry == null && this.readAmended) {
+    if(entry == null && this.amended) {
       synchronized(this.lock) {
-        if((entry = this.read.get(key)) == null && this.readAmended && this.dirty != null) {
+        if((entry = this.read.get(key)) == null && this.amended && this.dirty != null) {
           if((entry = this.dirty.get(key)) != null && !entry.replace(oldValue, newValue)) {
             entry = null;
           }
@@ -262,22 +285,22 @@ import java.util.function.IntFunction;
   public void clear() {
     synchronized(this.lock) {
       this.read = this.function.apply(this.read.size());
-      this.readAmended = false;
+      this.amended = false;
       this.dirty = null;
-      this.readMisses = 0;
+      this.misses = 0;
     }
   }
 
   @Override
   public @NonNull Set<Entry<K, V>> entrySet() {
     if(this.entrySet != null) return this.entrySet;
-    return this.entrySet = new EntrySet();
+    return this.entrySet = new EntrySetView();
   }
 
   private void promoteIfNeeded() {
-    if(this.readAmended) {
+    if(this.amended) {
       synchronized(this.lock) {
-        if(this.readAmended) {
+        if(this.amended) {
           this.promoteLocked();
         }
       }
@@ -288,13 +311,13 @@ import java.util.function.IntFunction;
     if(this.dirty != null) {
       this.read = this.dirty;
     }
-    this.readAmended = false;
+    this.amended = false;
     this.dirty = null;
-    this.readMisses = 0;
+    this.misses = 0;
   }
 
   private void missLocked() {
-    if(++this.readMisses > (this.dirty != null ? this.dirty.size() : 0)) {
+    if(++this.misses > (this.dirty != null ? this.dirty.size() : 0)) {
       this.promoteLocked();
     }
   }
@@ -448,7 +471,7 @@ import java.util.function.IntFunction;
     }
   }
 
-  private final class EntrySet extends AbstractSet<Map.Entry<K, V>> {
+  private final class EntrySetView extends AbstractSet<Map.Entry<K, V>> {
     @Override
     public int size() {
       return SyncMapImpl.this.size();

@@ -40,6 +40,7 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.IntFunction;
 
 /* package */ final class SyncMapImpl<K, V> extends AbstractMap<K, V> implements SyncMap<K, V> {
@@ -141,6 +142,102 @@ import java.util.function.IntFunction;
       }
     }
     return entry != null ? entry.get() : null;
+  }
+
+  @Override
+  public V computeIfAbsent(final @Nullable K key, final @NonNull Function<? super K, ? extends V> mappingFunction) {
+    requireNonNull(mappingFunction, "mappingFunction");
+    ExpungingValue<V> entry; V current;
+    if((entry = this.read.get(key)) != null) {
+      if((current = entry.get()) == null) {
+        entry.set(current = mappingFunction.apply(key));
+      }
+      return current;
+    }
+    synchronized(this.lock) {
+      if((entry = this.read.get(key)) != null) {
+        // The entry was previously expunged, which implies this entry
+        // is not within the dirty map.
+        if(entry.tryUnexpunge()) {
+          this.dirty.put(key, entry);
+        }
+        if((current = entry.get()) == null) {
+          entry.set(current = mappingFunction.apply(key));
+        }
+      } else if(this.dirty != null && (entry = this.dirty.get(key)) != null) {
+        if((current = entry.get()) == null) {
+          entry.set(current = mappingFunction.apply(key));
+        }
+        this.missLocked();
+      } else {
+        if(!this.amended) {
+          // Adds the first new key to the dirty map and marks it as
+          // amended.
+          this.dirtyLocked();
+          this.amended = true;
+        }
+        this.dirty.put(key, new ExpungingValueImpl<>(current = mappingFunction.apply(key)));
+      }
+    }
+    return current;
+  }
+
+  @Override
+  public V computeIfPresent(final @NonNull K key, final @NonNull BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
+    requireNonNull(remappingFunction, "remappingFunction");
+    ExpungingValue<V> entry; V current;
+    if((entry = this.read.get(key)) != null) {
+      if((current = entry.get()) != null) {
+        entry.trySet(current = remappingFunction.apply(key, current));
+      }
+      return current;
+    }
+    synchronized(this.lock) {
+      if((entry = this.read.get(key)) != null) {
+        // The entry was previously expunged, which implies this entry
+        // is not within the dirty map.
+        if(entry.tryUnexpunge()) {
+          this.dirty.put(key, entry);
+        }
+        if((current = entry.get()) != null) {
+          entry.trySet(current = remappingFunction.apply(key, current));
+        }
+      } else if(this.dirty != null && (entry = this.dirty.get(key)) != null) {
+        if((current = entry.get()) != null) {
+          entry.trySet(current = remappingFunction.apply(key, current));
+        }
+        this.missLocked();
+      } else {
+        current = null;
+      }
+    }
+    return current;
+  }
+
+  @Override
+  public V compute(final @NonNull K key, final @NonNull BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
+    requireNonNull(remappingFunction, "remappingFunction");
+    ExpungingValue<V> entry; final V current;
+    if((entry = this.read.get(key)) != null) {
+      entry.set(current = remappingFunction.apply(key, entry.get()));
+      return current;
+    }
+    synchronized(this.lock) {
+      if((entry = this.read.get(key)) != null) {
+        // The entry was previously expunged, which implies this entry
+        // is not within the dirty map.
+        if(entry.tryUnexpunge()) {
+          this.dirty.put(key, entry);
+        }
+        entry.set(current = remappingFunction.apply(key, entry.get()));
+      } else if(this.dirty != null && (entry = this.dirty.get(key)) != null) {
+        entry.set(current = remappingFunction.apply(key, entry.get()));
+        this.missLocked();
+      } else {
+        current = null;
+      }
+    }
+    return current;
   }
 
   @Override

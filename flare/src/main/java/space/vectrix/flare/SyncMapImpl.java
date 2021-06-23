@@ -37,6 +37,8 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.IntFunction;
 
@@ -77,6 +79,8 @@ import java.util.function.IntFunction;
     this.read = function.apply(initialCapacity);
   }
 
+  // Query Operations
+
   @Override
   public int size() {
     this.promoteIfNeeded();
@@ -97,20 +101,11 @@ import java.util.function.IntFunction;
   }
 
   @Override
-  public @Nullable V get(final @Nullable Object key) {
-    ExpungingValue<V> entry;
-    if((entry = this.read.get(key)) == null && this.amended) {
-      synchronized(this.lock) {
-        if((entry = this.read.get(key)) == null && this.amended && this.dirty != null) {
-          entry = this.dirty.get(key);
-          // The slow path should be avoided, even if the value does
-          // not match or is present. So we mark a miss, to eventually
-          // promote and take a faster path.
-          this.missLocked();
-        }
-      }
+  public boolean containsValue(final @Nullable Object value) {
+    for(final Entry<K, V> entry : this.entrySet()) {
+      if(Objects.equals(entry.getValue(), value)) return true;
     }
-    return entry != null ? entry.get() : null;
+    return false;
   }
 
   @Override
@@ -132,11 +127,55 @@ import java.util.function.IntFunction;
   }
 
   @Override
-  public boolean containsValue(final @Nullable Object value) {
-    for(final Entry<K, V> entry : this.entrySet()) {
-      if(Objects.equals(entry.getValue(), value)) return true;
+  public @Nullable V get(final @Nullable Object key) {
+    ExpungingValue<V> entry;
+    if((entry = this.read.get(key)) == null && this.amended) {
+      synchronized(this.lock) {
+        if((entry = this.read.get(key)) == null && this.amended && this.dirty != null) {
+          entry = this.dirty.get(key);
+          // The slow path should be avoided, even if the value does
+          // not match or is present. So we mark a miss, to eventually
+          // promote and take a faster path.
+          this.missLocked();
+        }
+      }
     }
-    return false;
+    return entry != null ? entry.get() : null;
+  }
+
+  @Override
+  @SuppressWarnings("ConstantConditions")
+  public V putIfAbsent(final @Nullable K key, final @NonNull V value) {
+    requireNonNull(value, "value");
+    ExpungingValue<V> entry; Map.Entry<Boolean, V> result;
+    if((entry = this.read.get(key)) != null) {
+      if((result = entry.putIfAbsent(value)).getKey() == Boolean.TRUE) {
+        return result.getValue();
+      }
+    }
+    synchronized(this.lock) {
+      if((entry = this.read.get(key)) != null) {
+        // The entry was previously expunged, which implies this entry
+        // is not within the dirty map.
+        if(entry.tryUnexpunge()) {
+          this.dirty.put(key, entry);
+        }
+        result = entry.putIfAbsent(value);
+      } else if(this.dirty != null && (entry = this.dirty.get(key)) != null) {
+        result = entry.putIfAbsent(value);
+        this.missLocked();
+      } else {
+        if(!this.amended) {
+          // Adds the first new key to the dirty map and marks it as
+          // amended.
+          this.dirtyLocked();
+          this.amended = true;
+        }
+        this.dirty.put(key, new ExpungingValueImpl<>(value));
+        result = new SimpleImmutableEntry<>(Boolean.TRUE, null);
+      }
+    }
+    return result.getValue();
   }
 
   @Override
@@ -147,8 +186,7 @@ import java.util.function.IntFunction;
   @SuppressWarnings("ConstantConditions")
   private V putValue(final @Nullable K key, final @NonNull V value, final boolean onlyIfPresent) {
     requireNonNull(value, "value");
-    ExpungingValue<V> entry;
-    V previous;
+    ExpungingValue<V> entry; V previous;
     if((previous = (entry = this.read.get(key)) != null ? entry.get() : null) == null || !entry.trySet(value)) {
       synchronized(this.lock) {
         if((entry = this.read.get(key)) != null) {
@@ -177,13 +215,6 @@ import java.util.function.IntFunction;
       }
     }
     return previous;
-  }
-
-  @Override
-  public void putAll(final @NonNull Map<? extends K, ? extends V> map) {
-    for(final Map.Entry<? extends K, ? extends V> entry : map.entrySet()) {
-      this.putValue(entry.getKey(), entry.getValue(), false);
-    }
   }
 
   @Override
@@ -228,42 +259,6 @@ import java.util.function.IntFunction;
   }
 
   @Override
-  @SuppressWarnings("ConstantConditions")
-  public V putIfAbsent(final @Nullable K key, final @NonNull V value) {
-    requireNonNull(value, "value");
-    ExpungingValue<V> entry;
-    Map.Entry<Boolean, V> result;
-    if((entry = this.read.get(key)) != null) {
-      if((result = entry.putIfAbsent(value)).getKey() == Boolean.TRUE) {
-        return result.getValue();
-      }
-    }
-    synchronized(this.lock) {
-      if((entry = this.read.get(key)) != null) {
-        // The entry was previously expunged, which implies this entry
-        // is not within the dirty map.
-        if(entry.tryUnexpunge()) {
-          this.dirty.put(key, entry);
-        }
-        result = entry.putIfAbsent(value);
-      } else if(this.dirty != null && (entry = this.dirty.get(key)) != null) {
-        result = entry.putIfAbsent(value);
-        this.missLocked();
-      } else {
-        if(!this.amended) {
-          // Adds the first new key to the dirty map and marks it as
-          // amended.
-          this.dirtyLocked();
-          this.amended = true;
-        }
-        this.dirty.put(key, new ExpungingValueImpl<>(value));
-        result = new SimpleImmutableEntry<>(Boolean.TRUE, null);
-      }
-    }
-    return result.getValue();
-  }
-
-  @Override
   public V replace(final @Nullable K key, final @NonNull V value) {
     return this.putValue(key, value, true);
   }
@@ -288,6 +283,40 @@ import java.util.function.IntFunction;
     return entry != null && entry.replace(currentValue, newValue);
   }
 
+  // Bulk Operations
+
+  @Override
+  public void forEach(final @NonNull BiConsumer<? super K, ? super V> action) {
+    requireNonNull(action, "action");
+    this.promoteIfNeeded();
+    V value;
+    for(final Map.Entry<K, ExpungingValue<V>> that : this.read.entrySet()) {
+      if((value = that.getValue().get()) != null) {
+        action.accept(that.getKey(), value);
+      }
+    }
+  }
+
+  @Override
+  public void putAll(final @NonNull Map<? extends K, ? extends V> map) {
+    requireNonNull(map, "map");
+    for(final Map.Entry<? extends K, ? extends V> entry : map.entrySet()) {
+      this.putValue(entry.getKey(), entry.getValue(), false);
+    }
+  }
+
+  @Override
+  public void replaceAll(final @NonNull BiFunction<? super K, ? super V, ? extends V> function) {
+    requireNonNull(function, "function");
+    this.promoteIfNeeded();
+    ExpungingValue<V> entry; V value;
+    for(final Map.Entry<K, ExpungingValue<V>> that : this.read.entrySet()) {
+      if((value = (entry = that.getValue()).get()) != null) {
+        entry.trySet(function.apply(that.getKey(), value));
+      }
+    }
+  }
+
   @Override
   public void clear() {
     synchronized(this.lock) {
@@ -297,6 +326,8 @@ import java.util.function.IntFunction;
       this.misses = 0;
     }
   }
+
+  // Views
 
   @Override
   public @NonNull Set<Entry<K, V>> entrySet() {
@@ -540,12 +571,14 @@ import java.util.function.IntFunction;
 
     @Override
     public void remove() {
-      if(this.current == null) return;
+      if(this.current == null) throw new IllegalStateException();
       SyncMapImpl.this.remove(this.current.getKey());
+      this.current = null;
     }
 
     @Override
     public void forEachRemaining(final @NonNull Consumer<? super Map.Entry<K, V>> action) {
+      requireNonNull(action, "action");
       if(this.next != null) action.accept(new MapEntry(this.next));
       this.backingIterator.forEachRemaining(entry -> action.accept(new MapEntry(entry)));
     }

@@ -275,5 +275,13 @@ public interface SyncMap<K, V> extends ConcurrentMap<K, V> {
      * @since 0.1.0
      */
     boolean tryUnexpungeAndSet(final @Nullable V value);
+
+    /**
+     * Tries to unexpunge the backing value, if the entry was previously expunged.
+     *
+     * @return {@code true} if the entry was unexpunged, otherwise {@code false}
+     * @since 0.3.0
+     */
+    boolean tryUnexpunge();
   }
 }

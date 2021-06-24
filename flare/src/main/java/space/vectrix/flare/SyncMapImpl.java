@@ -149,9 +149,7 @@ import java.util.function.IntFunction;
     requireNonNull(mappingFunction, "mappingFunction");
     ExpungingValue<V> entry; V current;
     if((entry = this.read.get(key)) != null) {
-      if((current = entry.get()) == null) {
-        entry.set(current = mappingFunction.apply(key));
-      }
+      if((current = entry.get()) == null) current = entry.set(mappingFunction.apply(key));
       return current;
     }
     synchronized(this.lock) {
@@ -161,14 +159,9 @@ import java.util.function.IntFunction;
         if(entry.tryUnexpunge()) {
           this.dirty.put(key, entry);
         }
-        if((current = entry.get()) == null) {
-          entry.set(current = mappingFunction.apply(key));
-        }
+        if((current = entry.get()) == null) current = entry.set(mappingFunction.apply(key));
       } else if(this.dirty != null && (entry = this.dirty.get(key)) != null) {
-        if((current = entry.get()) == null) {
-          entry.set(current = mappingFunction.apply(key));
-        }
-        this.missLocked();
+        if((current = entry.get()) == null) current = entry.set(mappingFunction.apply(key));
       } else {
         if(!this.amended) {
           // Adds the first new key to the dirty map and marks it as
@@ -187,25 +180,14 @@ import java.util.function.IntFunction;
     requireNonNull(remappingFunction, "remappingFunction");
     ExpungingValue<V> entry; V current;
     if((entry = this.read.get(key)) != null) {
-      if((current = entry.get()) != null) {
-        entry.trySet(current = remappingFunction.apply(key, current));
-      }
+      if((current = entry.get()) != null) entry.trySet(current = remappingFunction.apply(key, current));
       return current;
     }
     synchronized(this.lock) {
       if((entry = this.read.get(key)) != null) {
-        // The entry was previously expunged, which implies this entry
-        // is not within the dirty map.
-        if(entry.tryUnexpunge()) {
-          this.dirty.put(key, entry);
-        }
-        if((current = entry.get()) != null) {
-          entry.trySet(current = remappingFunction.apply(key, current));
-        }
+        if((current = entry.get()) != null) entry.trySet(current = remappingFunction.apply(key, current));
       } else if(this.dirty != null && (entry = this.dirty.get(key)) != null) {
-        if((current = entry.get()) != null) {
-          entry.trySet(current = remappingFunction.apply(key, current));
-        }
+        if((current = entry.get()) != null) entry.trySet(current = remappingFunction.apply(key, current));
         this.missLocked();
       } else {
         current = null;
@@ -219,7 +201,7 @@ import java.util.function.IntFunction;
     requireNonNull(remappingFunction, "remappingFunction");
     ExpungingValue<V> entry; final V current;
     if((entry = this.read.get(key)) != null) {
-      entry.set(current = remappingFunction.apply(key, entry.get()));
+      current = entry.set(remappingFunction.apply(key, entry.get()));
       return current;
     }
     synchronized(this.lock) {
@@ -229,9 +211,9 @@ import java.util.function.IntFunction;
         if(entry.tryUnexpunge()) {
           this.dirty.put(key, entry);
         }
-        entry.set(current = remappingFunction.apply(key, entry.get()));
+        current = entry.set(remappingFunction.apply(key, entry.get()));
       } else if(this.dirty != null && (entry = this.dirty.get(key)) != null) {
-        entry.set(current = remappingFunction.apply(key, entry.get()));
+        current = entry.set(remappingFunction.apply(key, entry.get()));
         this.missLocked();
       } else {
         current = null;
@@ -512,8 +494,9 @@ import java.util.function.IntFunction;
     }
 
     @Override
-    public void set(final @NonNull V value) {
+    public V set(final @NonNull V value) {
       ExpungingValueImpl.VALUE_UPDATER.set(this, value);
+      return value;
     }
 
     @Override

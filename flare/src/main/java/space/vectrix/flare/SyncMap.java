@@ -225,9 +225,10 @@ public interface SyncMap<K, V> extends ConcurrentMap<K, V> {
      * Sets the backing value.
      *
      * @param value the value
-     * @since 0.1.0
+     * @return the value to be stored
+     * @since 0.3.0
      */
-    void set(final @NonNull V value);
+    V set(final @NonNull V value);
 
     /**
      * Tries to replace the backing value, which can be set to {@code null}. This operation has no effect

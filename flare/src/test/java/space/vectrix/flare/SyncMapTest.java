@@ -161,6 +161,45 @@ public class SyncMapTest extends AbstractMapTest<String, String> {
     assertEquals(this.value(2), map.get(this.key(0)), "Map should return the new value associated with the key at index 0.");
   }
 
+  // For Each
+
+  @Test
+  public void testForEach() {
+    final Map<String, String> map = this.populate(this.createMap(), 5);
+    final AtomicInteger counter = new AtomicInteger();
+    map.forEach((key, value) -> {
+      final String original = String.valueOf(counter.getAndIncrement());
+      assertEquals(original, key, "Map should return " + original + ".");
+    });
+  }
+
+  // Put All
+
+  @Test
+  public void testPutAll() {
+    final Map<String, String> first = this.populate(this.createMap(), 0);
+    final Map<String, String> other = this.populate(this.createMap(), 5);
+    first.putAll(other);
+    for(int i = 0; i < 5; i++) {
+      final String original = String.valueOf(i);
+      assertEquals(original, first.get(original), "Map should return " + original + ".");
+    }
+  }
+
+  // Replace All
+
+  @Test
+  public void testReplaceAll() {
+    final Map<String, String> map = this.populate(this.createMap(), 5);
+    final AtomicInteger offset = new AtomicInteger(10);
+    map.replaceAll((key, value) -> String.valueOf(offset.getAndIncrement()));
+    for(int i = 0; i < 5; i++) {
+      final String originalKey = String.valueOf(i);
+      final String offsetKey = String.valueOf(i + 10);
+      assertEquals(offsetKey, map.get(originalKey), "Map should return " + offsetKey + ".");
+    }
+  }
+
   // Entry Set
 
   @Test

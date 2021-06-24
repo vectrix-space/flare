@@ -145,6 +145,7 @@ import java.util.function.IntFunction;
   }
 
   @Override
+  @SuppressWarnings("ConstantConditions")
   public V computeIfAbsent(final @Nullable K key, final @NonNull Function<? super K, ? extends V> mappingFunction) {
     requireNonNull(mappingFunction, "mappingFunction");
     ExpungingValue<V> entry; V current;
@@ -216,7 +217,13 @@ import java.util.function.IntFunction;
         current = entry.set(remappingFunction.apply(key, entry.get()));
         this.missLocked();
       } else {
-        current = null;
+        if(!this.amended) {
+          // Adds the first new key to the dirty map and marks it as
+          // amended.
+          this.dirtyLocked();
+          this.amended = true;
+        }
+        this.dirty.put(key, new ExpungingValueImpl<>(current = remappingFunction.apply(key, null)));
       }
     }
     return current;

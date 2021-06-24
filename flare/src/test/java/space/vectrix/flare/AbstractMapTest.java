@@ -94,6 +94,29 @@ public abstract class AbstractMapTest<K, V> {
     assertEquals(3, map.size(), "Map should be of size 3.");
   }
 
+  // Empty
+
+  @Test
+  public void testEmpty1() {
+    final Map<K, V> full = this.populate(this.createMap(), 3);
+    assertFalse(full.isEmpty(), "Map should not be empty.");
+  }
+
+  @Test
+  public void testEmpty2() {
+    final Map<K, V> empty = this.populate(this.createMap(), 0);
+    assertTrue(empty.isEmpty(), "Map should be empty.");
+  }
+
+  // Contains Value
+
+  @Test
+  public void testContainsValue() {
+    final Map<K, V> map = this.populate(this.createMap(), 3);
+    assertTrue(map.containsValue(this.value(0)), "Map should contain the value at index 0.");
+    assertFalse(map.containsValue(this.value(3)), "Map should not contain the value at index 3.");
+  }
+
   // Contains Key
 
   @Test
@@ -110,6 +133,74 @@ public abstract class AbstractMapTest<K, V> {
     final Map<K, V> map = this.populate(this.createMap(), 3);
     assertEquals(this.value(0), map.get(this.key(0)), "Map should return the value at index 0, when retrieving the key at index 0.");
     assertNull(map.get(this.key(3)), "Map should contain a null value for key at index 3.");
+  }
+
+  // Compute Absent
+
+  @Test
+  public void testComputeAbsent() {
+    final Map<K, V> map = this.populate(this.createMap(), 3);
+    assertEquals(this.value(0), map.computeIfAbsent(this.key(0), key -> this.value(3)), "Map should return the value at index 0, when computing if absent the key at index 0.");
+    assertEquals(this.value(0), map.get(this.key(0)), "Map should return the value at index 0, when retrieving the key at index 0.");
+    assertEquals(this.value(3), map.computeIfAbsent(this.key(3), key -> {
+      assertEquals(this.key(3), key, "Map should input the key at index 3.");
+      return this.value(3);
+    }), "Map should return the computed value at index 3.");
+    assertEquals(this.value(3), map.get(this.key(3)), "Map should return the value at index 3, when retrieving the key at index 3.");
+    assertNull(map.computeIfAbsent(this.key(4), key -> {
+      assertEquals(this.key(4), key, "Map should input the key at index 4.");
+      return null;
+    }), "Map should return the computed null value at index 4.");
+  }
+
+  // Compute Present
+
+  @Test
+  public void testComputePresent() {
+    final Map<K, V> map = this.populate(this.createMap(), 3);
+    assertEquals(this.value(3), map.computeIfPresent(this.key(0), (key, value) -> {
+      assertEquals(this.key(0), key, "Map should input the key at index 0.");
+      assertEquals(this.value(0), value, "Map should input the value at index 0.");
+      return this.value(3);
+    }), "Map should return the value at index 3, when computing if present the key at index 0.");
+    assertEquals(this.value(3), map.get(this.key(0)), "Map should return the value at index 3, when retrieving the key at index 0.");
+    assertNull(map.computeIfPresent(this.key(1), (key, value) -> {
+      assertEquals(this.key(1), key, "Map should input the key at index 1.");
+      assertEquals(this.value(1), value, "Map should input the value at index 1.");
+      return null;
+    }), "Map should return the computed null value at index 1.");
+    assertFalse(map.containsKey(this.key(1)), "Map should no longer contain the value at index 1.");
+    assertNull(map.computeIfPresent(this.key(3), (key, value) -> this.value(3)), "Map should return the computed null value at index 3.");
+  }
+
+  // Compute
+
+  @Test
+  public void testCompute() {
+    final Map<K, V> map = this.populate(this.createMap(), 3);
+    assertEquals(this.value(3), map.compute(this.key(0), (key, value) -> {
+      assertEquals(this.key(0), key, "Map should input the key at index 0.");
+      assertEquals(this.value(0), value, "Map should input the value at index 0.");
+      return this.value(3);
+    }), "Map should return the value at index 3, when computing if present the key at index 0.");
+    assertEquals(this.value(3), map.get(this.key(0)), "Map should return the value at index 3, when retrieving the key at index 0.");
+    assertNull(map.compute(this.key(1), (key, value) -> {
+      assertEquals(this.key(1), key, "Map should input the key at index 1.");
+      assertEquals(this.value(1), value, "Map should input the value at index 1.");
+      return null;
+    }), "Map should return the computed null value at index 1.");
+    assertFalse(map.containsKey(this.key(1)), "Map should no longer contain the value at index 1.");
+    assertEquals(this.value(3), map.compute(this.key(3), (key, value) -> this.value(3)), "Map should return the value at index 3, when computing the key at index 3.");
+  }
+
+  // Put If Absent
+
+  @Test
+  public void testPutAbsent() {
+    final Map<K, V> map = this.populate(this.createMap(), 3);
+    assertNull(map.putIfAbsent(this.key(3), this.value(3)), "Map should return null when no previous value is present for the key at index 3.");
+    assertEquals(this.value(2), map.putIfAbsent(this.key(2), this.value(3)), "Map should return the value at index 2, when attempting to put the key at index 2.");
+    assertEquals(this.value(2), map.get(this.key(2)), "Map should return the value at index 2 when no mutation of the key at index 2 should have occurred.");
   }
 
   // Put
@@ -157,35 +248,6 @@ public abstract class AbstractMapTest<K, V> {
     } catch(final ConcurrentModificationException exception) {
       fail("Map should be able to put without mutating the iterator.");
     }
-  }
-
-  // Put If Absent
-
-  @Test
-  public void testPutIfAbsent() {
-    final Map<K, V> map = this.populate(this.createMap(), 3);
-    assertNull(map.putIfAbsent(this.key(3), this.value(3)), "Map should return null when no previous value is present for the key at index 3.");
-    assertEquals(this.value(2), map.putIfAbsent(this.key(2), this.value(3)), "Map should return the value at index 2, when attempting to put the key at index 2.");
-    assertEquals(this.value(2), map.get(this.key(2)), "Map should return the value at index 2 when no mutation of the key at index 2 should have occurred.");
-  }
-
-  // Replace
-
-  @Test
-  public void testReplace() {
-    final Map<K, V> map = this.populate(this.createMap(), 3);
-    assertEquals(this.value(0), map.replace(this.key(0), this.value(3)), "Map should return the previous value associated with the key at index 0.");
-    assertEquals(this.value(3), map.get(this.key(0)), "Map should return the new value associated with the key at index 0.");
-  }
-
-  // Replace Entry
-
-  @Test
-  public void testReplaceEntry() {
-    final Map<K, V> map = this.populate(this.createMap(), 3);
-    assertFalse(map.replace(this.key(0), this.value(1), this.value(2)), "Map should not be able to replace the key at index 0, with the old value not matching the actual stored value.");
-    assertTrue(map.replace(this.key(0), this.value(0), this.value(2)), "Map should be able to replace the key at index 0, with the old value matching the actual stored value.");
-    assertEquals(this.value(2), map.get(this.key(0)), "Map should return the new value associated with the key at index 0.");
   }
 
   // Remove
@@ -283,6 +345,25 @@ public abstract class AbstractMapTest<K, V> {
     } catch(final ConcurrentModificationException exception) {
       fail("Map should be able to clear without mutating the iterator.");
     }
+  }
+
+  // Replace
+
+  @Test
+  public void testReplace() {
+    final Map<K, V> map = this.populate(this.createMap(), 3);
+    assertEquals(this.value(0), map.replace(this.key(0), this.value(3)), "Map should return the previous value associated with the key at index 0.");
+    assertEquals(this.value(3), map.get(this.key(0)), "Map should return the new value associated with the key at index 0.");
+  }
+
+  // Replace Entry
+
+  @Test
+  public void testReplaceEntry() {
+    final Map<K, V> map = this.populate(this.createMap(), 3);
+    assertFalse(map.replace(this.key(0), this.value(1), this.value(2)), "Map should not be able to replace the key at index 0, with the old value not matching the actual stored value.");
+    assertTrue(map.replace(this.key(0), this.value(0), this.value(2)), "Map should be able to replace the key at index 0, with the old value matching the actual stored value.");
+    assertEquals(this.value(2), map.get(this.key(0)), "Map should return the new value associated with the key at index 0.");
   }
 
   // Clear

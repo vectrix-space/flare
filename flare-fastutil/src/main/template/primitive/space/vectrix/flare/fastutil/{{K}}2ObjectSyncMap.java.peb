@@ -67,25 +67,56 @@ public interface {{ K }}2ObjectSyncMap<V> extends {{ K }}2ObjectMap<V> {
   }
 
   /**
-   * Creates a mutable set view of a sync map, backed by a {@link {{ K }}2ObjectOpenHashMap}.
+   * Returns a new sync map, backed by a {@link {{ K }}2ObjectOpenHashMap} with a provided initial
+   * capacity and promotion factor.
+   *
+   * @param initialCapacity the initial capacity of the hash map
+   * @param promotionFactor the promotion factor of the sync map
+   * @param <V> the value type
+   * @return a sync map
+   * @since 0.3.0
+   */
+  @SuppressWarnings("RedundantTypeArguments")
+  static <V> @NonNull {{ K }}2ObjectSyncMap<V> hashmap(final int initialCapacity, final float promotionFactor) {
+    return of({{ K }}2ObjectOpenHashMap<ExpungingValue<V>>::new, initialCapacity, promotionFactor);
+  }
+
+  /**
+   * Returns a new mutable set view of a sync map, backed by a {@link {{ K }}2ObjectOpenHashMap}.
    *
    * @return a mutable set view of a sync map
    * @since 0.2.0
    */
+  @SuppressWarnings("RedundantTypeArguments")
   static @NonNull {{ K }}Set hashset() {
     return setOf({{ K }}2ObjectOpenHashMap<ExpungingValue<Boolean>>::new, 16);
   }
 
   /**
-   * Creates a mutable set view of a sync map, backed by a {@link {{ K }}2ObjectOpenHashMap}
+   * Returns a new mutable set view of a sync map, backed by a {@link {{ K }}2ObjectOpenHashMap}
    * with a provided initial capacity.
    *
    * @param initialCapacity the initial capacity of the hash map
    * @return a mutable set view of a sync map
    * @since 0.2.0
    */
+  @SuppressWarnings("RedundantTypeArguments")
   static @NonNull {{ K }}Set hashset(final int initialCapacity) {
     return setOf({{ K }}2ObjectOpenHashMap<ExpungingValue<Boolean>>::new, initialCapacity);
+  }
+
+  /**
+   * Returns a new mutable set view of a sync map, backed by a {@link {{ K }}2ObjectOpenHashMap} with
+   * a provided initial capacity and promotion factor.
+   *
+   * @param initialCapacity the initial capacity of the hash map
+   * @param promotionFactor the promotion factor of the sync map
+   * @return a mutable set view of a sync map
+   * @since 0.3.0
+   */
+  @SuppressWarnings("RedundantTypeArguments")
+  static @NonNull {{ K }}Set hashset(final int initialCapacity, final float promotionFactor) {
+    return setOf({{ K }}2ObjectOpenHashMap<ExpungingValue<Boolean>>::new, initialCapacity, promotionFactor);
   }
 
   /**
@@ -98,13 +129,27 @@ public interface {{ K }}2ObjectSyncMap<V> extends {{ K }}2ObjectMap<V> {
    * @return a sync map
    * @since 0.2.0
    */
-  @SuppressWarnings("RedundantTypeArguments")
   static <V> @NonNull {{ K }}2ObjectSyncMap<V> of(final @NonNull IntFunction<{{ K }}2ObjectMap<ExpungingValue<V>>> function, final int initialCapacity) {
     return new {{ K }}2ObjectSyncMapImpl<>(function, initialCapacity);
   }
 
   /**
-   * Creates a mutable set view of a sync map, backed by the provided
+   * Returns a new sync map, backed by the provided {@link {{ K }}2ObjectMap}
+   * implementation with a provided initial capacity and promotion factor.
+   *
+   * @param function the map creation function
+   * @param initialCapacity the map initial capacity
+   * @param promotionFactor the map promotion factor
+   * @param <V> the value type
+   * @return a sync map
+   * @since 0.3.0
+   */
+  static <V> @NonNull {{ K }}2ObjectSyncMap<V> of(final @NonNull IntFunction<{{ K }}2ObjectMap<ExpungingValue<V>>> function, final int initialCapacity, final float promotionFactor) {
+    return new {{ K }}2ObjectSyncMapImpl<>(function, initialCapacity, promotionFactor);
+  }
+
+  /**
+   * Returns a new mutable set view of a sync map, backed by the provided
    * {@link {{ K }}2ObjectMap} implementation with a provided initial capacity.
    *
    * @param function the map creation function
@@ -114,6 +159,21 @@ public interface {{ K }}2ObjectSyncMap<V> extends {{ K }}2ObjectMap<V> {
    */
   static @NonNull {{ K }}Set setOf(final @NonNull IntFunction<{{ K }}2ObjectMap<ExpungingValue<Boolean>>> function, final int initialCapacity) {
     return new {{ K }}2ObjectSyncMapSet(new {{ K }}2ObjectSyncMapImpl<>(function, initialCapacity));
+  }
+
+  /**
+   * Returns a new mutable set view of a sync map, backed by the provided
+   * {@link {{ K }}2ObjectMap} implementation with a provided initial capacity
+   * and promotion factor.
+   *
+   * @param function the map creation function
+   * @param initialCapacity the map initial capacity
+   * @param promotionFactor the map promotion factor
+   * @return a mutable set view of a sync map
+   * @since 0.3.0
+   */
+  static @NonNull {{ K }}Set setOf(final @NonNull IntFunction<{{ K }}2ObjectMap<ExpungingValue<Boolean>>> function, final int initialCapacity, final float promotionFactor) {
+    return new {{ K }}2ObjectSyncMapSet(new {{ K }}2ObjectSyncMapImpl<>(function, initialCapacity, promotionFactor));
   }
 
   /**
@@ -175,14 +235,6 @@ public interface {{ K }}2ObjectSyncMap<V> extends {{ K }}2ObjectMap<V> {
     Map.@NonNull Entry<Boolean, V> putIfAbsent(final @NonNull V value);
 
     /**
-     * Returns {@code true} if this value has been expunged.
-     *
-     * @return {@code true} if this entry has been expunged, otherwise {@code false}
-     * @since 0.2.0
-     */
-    boolean expunged();
-
-    /**
      * Returns {@code true} if this element has a value (it is neither expunged nor {@code null}).
      *
      * @return {@code true} if this entry exists, otherwise {@code false}
@@ -194,9 +246,10 @@ public interface {{ K }}2ObjectSyncMap<V> extends {{ K }}2ObjectMap<V> {
      * Sets the backing value.
      *
      * @param value the value
-     * @since 0.2.0
+     * @return the value to be stored
+     * @since 0.3.0
      */
-    void set(final @NonNull V value);
+    @NonNull V set(final @NonNull V value);
 
     /**
      * Tries to replace the backing value, which can be set to {@code null}. This operation has no effect
@@ -244,5 +297,13 @@ public interface {{ K }}2ObjectSyncMap<V> extends {{ K }}2ObjectMap<V> {
      * @since 0.2.0
      */
     boolean tryUnexpungeAndSet(final @Nullable V value);
+
+    /**
+     * Tries to unexpunge the backing value, if the entry was previously expunged.
+     *
+     * @return {@code true} if the entry was unexpunged, otherwise {@code false}
+     * @since 0.3.0
+     */
+    boolean tryUnexpunge();
   }
 }

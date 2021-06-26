@@ -267,7 +267,7 @@ import java.util.function.IntFunction;
           this.amended = true;
         }
         this.dirty.put(key, new ExpungingValueImpl<>(value));
-        result = new SimpleImmutableEntry<>(Boolean.TRUE, null);
+        result = new AbstractMap.SimpleImmutableEntry<>(Boolean.TRUE, null);
       }
     }
     return result.getValue();

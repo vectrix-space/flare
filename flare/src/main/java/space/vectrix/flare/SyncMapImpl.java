@@ -45,23 +45,23 @@ import java.util.function.IntFunction;
 
 /* package */ final class SyncMapImpl<K, V> extends AbstractMap<K, V> implements SyncMap<K, V> {
   /**
-   * A single implicit lock, when dealing with {@code dirty} mutations.
+   * A single implicit lock when dealing with {@code dirty} mutations.
    */
   private transient final Object lock = new Object();
 
   /**
-   * The read only map, that does not require a lock and does not allow mutations.
+   * The read only map that does not require a lock and does not allow mutations.
    */
   private transient volatile Map<K, ExpungingValue<V>> read;
 
   /**
-   * Represents whether the {@code dirty} map has changes the {@code read} map,
+   * Represents whether the {@code dirty} map has changes the {@code read} map
    * does not have yet.
    */
   private transient volatile boolean amended;
 
   /**
-   * The read/write map, that requires a lock and allows mutations.
+   * The read/write map that requires a lock and allows mutations.
    */
   private transient Map<K, ExpungingValue<V>> dirty;
 
@@ -74,9 +74,16 @@ import java.util.function.IntFunction;
   private transient EntrySetView entrySet;
 
   private final IntFunction<Map<K, ExpungingValue<V>>> function;
+  private final float promotionFactor;
 
   /* package */ SyncMapImpl(final @NonNull IntFunction<Map<K, ExpungingValue<V>>> function, final int initialCapacity) {
+    this(function, initialCapacity, 1.0F);
+  }
+
+  /* package */ SyncMapImpl(final @NonNull IntFunction<Map<K, ExpungingValue<V>>> function, final int initialCapacity, final float promotionFactor) {
+    if(promotionFactor <= 0.0F || promotionFactor > 1.0F) throw new IllegalArgumentException("Promotion factor must be more than 0 and less than or equal to 1");
     this.function = function;
+    this.promotionFactor = promotionFactor;
     this.read = function.apply(initialCapacity);
   }
 
@@ -442,7 +449,7 @@ import java.util.function.IntFunction;
   }
 
   private void missLocked() {
-    if(this.misses++ >= (this.dirty != null ? this.dirty.size() : 0)) {
+    if(this.misses++ >= (this.dirty != null ? (int) (this.dirty.size() * this.promotionFactor) : 0)) {
       this.promoteLocked();
     }
   }
@@ -488,11 +495,6 @@ import java.util.function.IntFunction;
           return new AbstractMap.SimpleImmutableEntry<>(Boolean.TRUE, null);
         }
       }
-    }
-
-    @Override
-    public boolean expunged() {
-      return ExpungingValueImpl.VALUE_UPDATER.get(this) == ExpungingValueImpl.EXPUNGED;
     }
 
     @Override

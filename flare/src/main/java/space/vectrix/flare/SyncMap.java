@@ -136,13 +136,13 @@ public interface SyncMap<K, V> extends ConcurrentMap<K, V> {
 
   /**
    * Returns a new mutable set view of a sync map, backed by a {@link HashMap} with
-   * a provided initial capacity.
+   * a provided initial capacity and promotion factor.
    *
    * @param initialCapacity the initial capacity of the hash map
    * @param promotionFactor the promotion factor of the sync map
    * @param <K> the key type
    * @return a mutable set view of a sync map
-   * @since 0.1.0
+   * @since 0.3.0
    */
   @SuppressWarnings("RedundantTypeArguments")
   static <K> @NonNull Set<K> hashset(final int initialCapacity, final float promotionFactor) {
@@ -196,7 +196,8 @@ public interface SyncMap<K, V> extends ConcurrentMap<K, V> {
 
   /**
    * Returns a new mutable set view of a sync map, backed by the provided
-   * {@link Map} implementation with a provided initial capacity.
+   * {@link Map} implementation with a provided initial capacity and promotion
+   * factor.
    *
    * @param function the map creation function
    * @param initialCapacity the map initial capacity
@@ -282,7 +283,7 @@ public interface SyncMap<K, V> extends ConcurrentMap<K, V> {
      * @return the value to be stored
      * @since 0.3.0
      */
-    V set(final @NonNull V value);
+    @NonNull V set(final @NonNull V value);
 
     /**
      * Tries to replace the backing value, which can be set to {@code null}. This operation has no effect

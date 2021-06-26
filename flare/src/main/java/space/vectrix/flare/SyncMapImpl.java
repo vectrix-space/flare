@@ -170,6 +170,7 @@ import java.util.function.IntFunction;
         if((current = entry.get()) == null) current = entry.set(mappingFunction.apply(key));
       } else if(this.dirty != null && (entry = this.dirty.get(key)) != null) {
         if((current = entry.get()) == null) current = entry.set(mappingFunction.apply(key));
+        this.missLocked();
       } else {
         if(!this.amended) {
           // Adds the first new key to the dirty map and marks it as
@@ -297,6 +298,7 @@ import java.util.function.IntFunction;
         } else if(this.dirty != null && (entry = this.dirty.get(key)) != null) {
           previous = entry.get();
           entry.set(value);
+          this.missLocked();
         } else if(!onlyIfPresent) {
           if(!this.amended) {
             // Adds the first new key to the dirty map and marks it as
@@ -504,7 +506,7 @@ import java.util.function.IntFunction;
     }
 
     @Override
-    public V set(final @NonNull V value) {
+    public @NonNull V set(final @NonNull V value) {
       ExpungingValueImpl.VALUE_UPDATER.set(this, value);
       return value;
     }

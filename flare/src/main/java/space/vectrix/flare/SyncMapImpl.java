@@ -198,6 +198,7 @@ import java.util.function.IntFunction;
   }
 
   @Override
+  @SuppressWarnings("ConstantConditions")
   public V compute(final @NonNull K key, final @NonNull BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
     requireNonNull(remappingFunction, "remappingFunction");
     ExpungingValue<V> entry; final V current;
@@ -561,24 +562,27 @@ import java.util.function.IntFunction;
 
   private final class MapEntry implements Map.Entry<K, V> {
     private final K key;
+    private V value;
 
-    private MapEntry(final Map.@NonNull Entry<K, ExpungingValue<V>> entry) {
-      this.key = entry.getKey();
+    private MapEntry(final @Nullable K key, final @NonNull V value) {
+      this.key = key;
+      this.value = value;
     }
 
     @Override
-    public @NonNull K getKey() {
+    public @Nullable K getKey() {
       return this.key;
     }
 
     @Override
-    public @Nullable V getValue() {
-      return SyncMapImpl.this.get(this.key);
+    public @NonNull V getValue() {
+      return this.value;
     }
 
     @Override
     public @Nullable V setValue(final @NonNull V value) {
-      return SyncMapImpl.this.put(this.key, value);
+      requireNonNull(value, "value");
+      return SyncMapImpl.this.put(this.key, this.value = value);
     }
 
     @Override
@@ -636,12 +640,12 @@ import java.util.function.IntFunction;
 
   private final class EntryIterator implements Iterator<Map.Entry<K, V>> {
     private final Iterator<Map.Entry<K, ExpungingValue<V>>> backingIterator;
-    private Map.Entry<K, ExpungingValue<V>> next;
-    private Map.Entry<K, ExpungingValue<V>> current;
+    private Map.Entry<K, V> next;
+    private Map.Entry<K, V> current;
 
     private EntryIterator(final @NonNull Iterator<Map.Entry<K, ExpungingValue<V>>> backingIterator) {
       this.backingIterator = backingIterator;
-      this.next = this.backingIterator.hasNext() ? this.backingIterator.next() : null;
+      this.next = this.nextValue();
     }
 
     @Override
@@ -652,8 +656,19 @@ import java.util.function.IntFunction;
     @Override
     public Map.@NonNull Entry<K, V> next() {
       if((this.current = this.next) == null) throw new NoSuchElementException();
-      this.next = this.backingIterator.hasNext() ? this.backingIterator.next() : null;
-      return new MapEntry(this.current);
+      this.next = this.nextValue();
+      return this.current;
+    }
+
+    private Map.@Nullable Entry<K, V> nextValue() {
+      Map.Entry<K, ExpungingValue<V>> entry;
+      V value;
+      while(this.backingIterator.hasNext()) {
+        if((value = (entry = this.backingIterator.next()).getValue().get()) != null) {
+          return new MapEntry(entry.getKey(), value);
+        }
+      }
+      return null;
     }
 
     @Override
@@ -666,8 +681,11 @@ import java.util.function.IntFunction;
     @Override
     public void forEachRemaining(final @NonNull Consumer<? super Map.Entry<K, V>> action) {
       requireNonNull(action, "action");
-      if(this.next != null) action.accept(new MapEntry(this.next));
-      this.backingIterator.forEachRemaining(entry -> action.accept(new MapEntry(entry)));
+      if(this.next != null) action.accept(this.next);
+      this.backingIterator.forEachRemaining(entry -> {
+        final V value = entry.getValue().get();
+        if(value != null) action.accept(new MapEntry(entry.getKey(), value));
+      });
     }
   }
 }

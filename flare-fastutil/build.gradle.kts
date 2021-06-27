@@ -13,13 +13,13 @@ sourceSets {
   main {
     templates.templateSets.register("primitive") {
       dataFiles.from(files("src/templateData/primitive.yaml"))
-      variants("int", "long", "float", "double")
+      variants("double", "float", "int", "long", "short")
     }
   }
   test {
     templates.templateSets.register("primitive") {
       dataFiles.from(files("src/templateData/primitive.yaml"))
-      variants("int", "long", "float", "double")
+      variants("double", "float", "int", "long", "short")
     }
   }
 }

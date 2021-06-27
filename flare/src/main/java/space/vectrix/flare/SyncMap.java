@@ -93,6 +93,22 @@ public interface SyncMap<K, V> extends ConcurrentMap<K, V> {
   }
 
   /**
+   * Returns a new sync map, backed by a {@link HashMap} with a provided initial
+   * capacity and promotion factor.
+   *
+   * @param initialCapacity the initial capacity of the hash map
+   * @param promotionFactor the promotion factor of the sync map
+   * @param <K> the key type
+   * @param <V> the value type
+   * @return a sync map
+   * @since 0.3.0
+   */
+  @SuppressWarnings("RedundantTypeArguments")
+  static <K, V> @NonNull SyncMap<K, V> hashmap(final int initialCapacity, final float promotionFactor) {
+    return of(HashMap<K, ExpungingValue<V>>::new, initialCapacity, promotionFactor);
+  }
+
+  /**
    * Returns a new mutable set view of a sync map, backed by a {@link HashMap}.
    *
    * @param <K> the key type
@@ -119,6 +135,21 @@ public interface SyncMap<K, V> extends ConcurrentMap<K, V> {
   }
 
   /**
+   * Returns a new mutable set view of a sync map, backed by a {@link HashMap} with
+   * a provided initial capacity and promotion factor.
+   *
+   * @param initialCapacity the initial capacity of the hash map
+   * @param promotionFactor the promotion factor of the sync map
+   * @param <K> the key type
+   * @return a mutable set view of a sync map
+   * @since 0.3.0
+   */
+  @SuppressWarnings("RedundantTypeArguments")
+  static <K> @NonNull Set<K> hashset(final int initialCapacity, final float promotionFactor) {
+    return setOf(HashMap<K, ExpungingValue<Boolean>>::new, initialCapacity, promotionFactor);
+  }
+
+  /**
    * Returns a new sync map, backed by the provided {@link Map} implementation
    * with a provided initial capacity.
    *
@@ -134,6 +165,22 @@ public interface SyncMap<K, V> extends ConcurrentMap<K, V> {
   }
 
   /**
+   * Returns a new sync map, backed by the provided {@link Map} implementation
+   * with a provided initial capacity and promotion factor.
+   *
+   * @param function the map creation function
+   * @param initialCapacity the map initial capacity
+   * @param promotionFactor the map promotion factor
+   * @param <K> the key type
+   * @param <V> the value type
+   * @return a sync map
+   * @since 0.3.0
+   */
+  static <K, V> @NonNull SyncMap<K, V> of(final @NonNull IntFunction<Map<K, ExpungingValue<V>>> function, final int initialCapacity, final float promotionFactor) {
+    return new SyncMapImpl<>(function, initialCapacity, promotionFactor);
+  }
+
+  /**
    * Returns a new mutable set view of a sync map, backed by the provided
    * {@link Map} implementation with a provided initial capacity.
    *
@@ -145,6 +192,22 @@ public interface SyncMap<K, V> extends ConcurrentMap<K, V> {
    */
   static <K> @NonNull Set<K> setOf(final @NonNull IntFunction<Map<K, ExpungingValue<Boolean>>> function, final int initialCapacity) {
     return Collections.newSetFromMap(new SyncMapImpl<>(function, initialCapacity));
+  }
+
+  /**
+   * Returns a new mutable set view of a sync map, backed by the provided
+   * {@link Map} implementation with a provided initial capacity and promotion
+   * factor.
+   *
+   * @param function the map creation function
+   * @param initialCapacity the map initial capacity
+   * @param promotionFactor the map promotion factor
+   * @param <K> they key type
+   * @return a mutable set view of a sync map
+   * @since 0.3.0
+   */
+  static <K> @NonNull Set<K> setOf(final @NonNull IntFunction<Map<K, ExpungingValue<Boolean>>> function, final int initialCapacity, final float promotionFactor) {
+    return Collections.newSetFromMap(new SyncMapImpl<>(function, initialCapacity, promotionFactor));
   }
 
   /**
@@ -206,14 +269,6 @@ public interface SyncMap<K, V> extends ConcurrentMap<K, V> {
     Map.@NonNull Entry<Boolean, V> putIfAbsent(final @NonNull V value);
 
     /**
-     * Returns {@code true} if this value has been expunged.
-     *
-     * @return {@code true} if this entry has been expunged, otherwise {@code false}
-     * @since 0.1.0
-     */
-    boolean expunged();
-
-    /**
      * Returns {@code true} if this element has a value (it is neither expunged nor {@code null}).
      *
      * @return {@code true} if this entry exists, otherwise {@code false}
@@ -225,9 +280,10 @@ public interface SyncMap<K, V> extends ConcurrentMap<K, V> {
      * Sets the backing value.
      *
      * @param value the value
-     * @since 0.1.0
+     * @return the value to be stored
+     * @since 0.3.0
      */
-    void set(final @NonNull V value);
+    @NonNull V set(final @NonNull V value);
 
     /**
      * Tries to replace the backing value, which can be set to {@code null}. This operation has no effect
@@ -275,5 +331,13 @@ public interface SyncMap<K, V> extends ConcurrentMap<K, V> {
      * @since 0.1.0
      */
     boolean tryUnexpungeAndSet(final @Nullable V value);
+
+    /**
+     * Tries to unexpunge the backing value, if the entry was previously expunged.
+     *
+     * @return {@code true} if the entry was unexpunged, otherwise {@code false}
+     * @since 0.3.0
+     */
+    boolean tryUnexpunge();
   }
 }

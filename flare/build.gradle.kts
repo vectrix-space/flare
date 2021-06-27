@@ -1,5 +1,5 @@
 dependencies {
-  api("org.checkerframework:checker-qual:3.14.0")
+  api("org.checkerframework:checker-qual:3.15.0")
 }
 
 tasks.jar {

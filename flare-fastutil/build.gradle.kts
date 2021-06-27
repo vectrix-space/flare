@@ -5,7 +5,7 @@ plugins {
 }
 
 dependencies {
-  api("org.checkerframework:checker-qual:3.14.0")
+  api("org.checkerframework:checker-qual:3.15.0")
   api("it.unimi.dsi:fastutil:8.5.4")
 }
 

@@ -135,6 +135,44 @@ public class {{ K }}2ObjectSyncMapTest extends {{ K }}2ObjectAbstractMapTest<Str
     assertEquals(this.value(2), map.get(this.key(0)), "Map should return the new value associated with the key at index 0.");
   }
 
+  // For Each
+
+  @Test
+  public void testForEach() {
+    final {{ K }}2ObjectMap<String> map = this.populate(this.createMap(), 5);
+    final AtomicInteger counter = new AtomicInteger();
+    map.forEach((key, value) -> {
+      counter.getAndIncrement();
+    });
+    assertTrue(counter.get() == 5, "Map should have iterated 5 times.");
+  }
+
+  // Put All
+
+  @Test
+  public void testPutAll() {
+    final {{ K }}2ObjectMap<String> first = this.populate(this.createMap(), 0);
+    final {{ K }}2ObjectMap<String> other = this.populate(this.createMap(), 5);
+    first.putAll(other);
+    for(int i = 0; i < 5; i++) {
+      final String original = String.valueOf(i);
+      assertEquals(original, first.get(this.key(i)), "Map should return the value at index " + i + ".");
+    }
+  }
+
+  // Replace All
+
+  @Test
+  public void testReplaceAll() {
+    final {{ K }}2ObjectMap<String> map = this.populate(this.createMap(), 5);
+    map.replaceAll((key, value) -> String.valueOf(Integer.valueOf(value) + 10));
+    for(int i = 0; i < 5; i++) {
+      final {{ k }} originalKey = {{ KT }}.valueOf(String.valueOf(i));
+      final String offsetValue = String.valueOf(i + 10);
+      assertEquals(offsetValue, map.get(originalKey), "Map should return the value " + offsetValue + " for key " + originalKey + ".");
+    }
+  }
+
   // Entry Set
 
   @Test

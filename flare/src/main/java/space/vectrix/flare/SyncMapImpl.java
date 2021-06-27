@@ -153,7 +153,7 @@ import java.util.function.IntFunction;
 
   @Override
   @SuppressWarnings("ConstantConditions")
-  public V computeIfAbsent(final @Nullable K key, final @NonNull Function<? super K, ? extends V> mappingFunction) {
+  public @Nullable V computeIfAbsent(final @Nullable K key, final @NonNull Function<? super K, ? extends V> mappingFunction) {
     requireNonNull(mappingFunction, "mappingFunction");
     ExpungingValue<V> entry; V current;
     if((entry = this.read.get(key)) != null) {
@@ -185,7 +185,7 @@ import java.util.function.IntFunction;
   }
 
   @Override
-  public V computeIfPresent(final @NonNull K key, final @NonNull BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
+  public @Nullable V computeIfPresent(final @NonNull K key, final @NonNull BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
     requireNonNull(remappingFunction, "remappingFunction");
     ExpungingValue<V> entry; V current;
     if((entry = this.read.get(key)) != null) {
@@ -207,7 +207,7 @@ import java.util.function.IntFunction;
 
   @Override
   @SuppressWarnings("ConstantConditions")
-  public V compute(final @NonNull K key, final @NonNull BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
+  public @Nullable V compute(final @NonNull K key, final @NonNull BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
     requireNonNull(remappingFunction, "remappingFunction");
     ExpungingValue<V> entry; final V current;
     if((entry = this.read.get(key)) != null) {
@@ -240,7 +240,7 @@ import java.util.function.IntFunction;
 
   @Override
   @SuppressWarnings("ConstantConditions")
-  public V putIfAbsent(final @Nullable K key, final @NonNull V value) {
+  public @Nullable V putIfAbsent(final @Nullable K key, final @NonNull V value) {
     requireNonNull(value, "value");
     ExpungingValue<V> entry; Map.Entry<Boolean, V> result;
     if((entry = this.read.get(key)) != null) {
@@ -315,7 +315,7 @@ import java.util.function.IntFunction;
 
   @Override
   @SuppressWarnings("SuspiciousMethodCalls")
-  public V remove(final @Nullable Object key) {
+  public @Nullable V remove(final @Nullable Object key) {
     ExpungingValue<V> entry;
     if((entry = this.read.get(key)) == null && this.amended) {
       synchronized(this.lock) {
@@ -355,7 +355,7 @@ import java.util.function.IntFunction;
   }
 
   @Override
-  public V replace(final @Nullable K key, final @NonNull V value) {
+  public @Nullable V replace(final @Nullable K key, final @NonNull V value) {
     return this.putValue(key, value, true);
   }
 

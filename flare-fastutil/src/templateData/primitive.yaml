@@ -1,33 +1,29 @@
 variants:
   int:
     k: int # primitive
+    ka: int # primitive alternative
     KT: Integer # wrapper
+    KA: Int # wrapper alternative
     K: Int # Abbreviation
     G: ints # Group Abbreviation
-    TestFoo: 0
-    TestBar: 1
-    TestBaz: 2
   long:
     k: long # primitive
+    ka: long # primitive alternative
     KT: Long # wrapper
+    KA: Long # wrapper alternative
     K: Long # Abbreviation
     G: longs # Group Abbreviation
-    TestFoo: 0L
-    TestBar: 1L
-    TestBaz: 2L
   float:
     k: float # primitive
+    ka: double # primitive alternative
     KT: Float # wrapper
+    KA: Double # wrapper alternative
     K: Float # Abbreviation
     G: floats # Group Abbreviation
-    TestFoo: 0.0F
-    TestBar: 1.0F
-    TestBaz: 2.0F
   double:
     k: double # primitive
+    ka: double # primitive alternative
     KT: Double # wrapper
+    KA: Double # wrapper alternative
     K: Double # Abbreviation
     G: doubles # Group Abbreviation
-    TestFoo: 0.0D
-    TestBar: 1.0D
-    TestBaz: 2.0D

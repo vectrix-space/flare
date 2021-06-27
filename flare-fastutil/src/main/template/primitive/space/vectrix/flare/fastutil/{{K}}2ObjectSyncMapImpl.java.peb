@@ -3,6 +3,7 @@ package space.vectrix.flare.fastutil;
 import static java.util.Objects.requireNonNull;
 
 import it.unimi.dsi.fastutil.{{ G }}.Abstract{{ K }}2ObjectMap;
+import it.unimi.dsi.fastutil.{{ G }}.{{ K }}2ObjectFunction;
 import it.unimi.dsi.fastutil.{{ G }}.{{ K }}2ObjectMap;
 import it.unimi.dsi.fastutil.{{ G }}.{{ K }}2ObjectMaps;
 import it.unimi.dsi.fastutil.objects.AbstractObjectSet;
@@ -20,6 +21,7 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.{{ KA }}Function;
 import java.util.function.IntFunction;
 
 /* package */ final class {{ K }}2ObjectSyncMapImpl<V> extends Abstract{{ K }}2ObjectMap<V> implements {{ K }}2ObjectSyncMap<V> {
@@ -115,7 +117,7 @@ import java.util.function.IntFunction;
   }
 
   @Override
-  public V get(final {{ k }} key) {
+  public @Nullable V get(final {{ k }} key) {
     ExpungingValue<V> entry;
     if((entry = this.read.get(key)) == null && this.amended) {
       synchronized(this.lock) {
@@ -133,7 +135,127 @@ import java.util.function.IntFunction;
 
   @Override
   @SuppressWarnings("ConstantConditions")
-  public V putIfAbsent(final {{ k }} key, final @NonNull V value) {
+  public @Nullable V computeIfAbsent(final {{ k }} key, final @NonNull {{ KA }}Function<? extends V> mappingFunction) {
+    requireNonNull(mappingFunction, "mappingFunction");
+    ExpungingValue<V> entry; V current;
+    if((entry = this.read.get(key)) != null) {
+      if((current = entry.get()) == null) current = entry.set(mappingFunction.apply(({{ ka }}) key));
+      return current;
+    }
+    synchronized(this.lock) {
+      if((entry = this.read.get(key)) != null) {
+        // The entry was previously expunged, which implies this entry
+        // is not within the dirty map.
+        if(entry.tryUnexpunge()) {
+          this.dirty.put(key, entry);
+        }
+        if((current = entry.get()) == null) current = entry.set(mappingFunction.apply(({{ ka }}) key));
+      } else if(this.dirty != null && (entry = this.dirty.get(key)) != null) {
+        if((current = entry.get()) == null) current = entry.set(mappingFunction.apply(({{ ka }}) key));
+        this.missLocked();
+      } else {
+        if(!this.amended) {
+          // Adds the first new key to the dirty map and marks it as
+          // amended.
+          this.dirtyLocked();
+          this.amended = true;
+        }
+        this.dirty.put(key, new ExpungingValueImpl<>(current = mappingFunction.apply(({{ ka }}) key)));
+      }
+    }
+    return current;
+  }
+
+  @Override
+  @SuppressWarnings("ConstantConditions")
+  public @Nullable V computeIfAbsent(final {{ k }} key, final @NonNull {{ K }}2ObjectFunction<? extends V> mappingFunction) {
+    requireNonNull(mappingFunction, "mappingFunction");
+    ExpungingValue<V> entry; V current;
+    if((entry = this.read.get(key)) != null) {
+      if((current = entry.get()) == null) current = entry.set(mappingFunction.get(key));
+      return current;
+    }
+    synchronized(this.lock) {
+      if((entry = this.read.get(key)) != null) {
+        // The entry was previously expunged, which implies this entry
+        // is not within the dirty map.
+        if(entry.tryUnexpunge()) {
+          this.dirty.put(key, entry);
+        }
+        if((current = entry.get()) == null) current = entry.set(mappingFunction.get(key));
+      } else if(this.dirty != null && (entry = this.dirty.get(key)) != null) {
+        if((current = entry.get()) == null) current = entry.set(mappingFunction.get(key));
+        this.missLocked();
+      } else {
+        if(!this.amended) {
+          // Adds the first new key to the dirty map and marks it as
+          // amended.
+          this.dirtyLocked();
+          this.amended = true;
+        }
+        this.dirty.put(key, new ExpungingValueImpl<>(current = mappingFunction.get(key)));
+      }
+    }
+    return current;
+  }
+
+  @Override
+  public @Nullable V computeIfPresent(final {{ k }} key, final @NonNull BiFunction<? super {{ KT }}, ? super V, ? extends V> remappingFunction) {
+    requireNonNull(remappingFunction, "remappingFunction");
+    ExpungingValue<V> entry; V current;
+    if((entry = this.read.get(key)) != null) {
+      if((current = entry.get()) != null) entry.trySet(current = remappingFunction.apply(key, current));
+      return current;
+    }
+    synchronized(this.lock) {
+      if((entry = this.read.get(key)) != null) {
+        if((current = entry.get()) != null) entry.trySet(current = remappingFunction.apply(key, current));
+      } else if(this.dirty != null && (entry = this.dirty.get(key)) != null) {
+        if((current = entry.get()) != null) entry.trySet(current = remappingFunction.apply(key, current));
+        this.missLocked();
+      } else {
+        current = null;
+      }
+    }
+    return current;
+  }
+
+  @Override
+  @SuppressWarnings("ConstantConditions")
+  public @Nullable V compute(final {{ k }} key, final @NonNull BiFunction<? super {{ KT }}, ? super V, ? extends V> remappingFunction) {
+    requireNonNull(remappingFunction, "remappingFunction");
+    ExpungingValue<V> entry; final V current;
+    if((entry = this.read.get(key)) != null) {
+      current = entry.set(remappingFunction.apply(key, entry.get()));
+      return current;
+    }
+    synchronized(this.lock) {
+      if((entry = this.read.get(key)) != null) {
+        // The entry was previously expunged, which implies this entry
+        // is not within the dirty map.
+        if(entry.tryUnexpunge()) {
+          this.dirty.put(key, entry);
+        }
+        current = entry.set(remappingFunction.apply(key, entry.get()));
+      } else if(this.dirty != null && (entry = this.dirty.get(key)) != null) {
+        current = entry.set(remappingFunction.apply(key, entry.get()));
+        this.missLocked();
+      } else {
+        if(!this.amended) {
+          // Adds the first new key to the dirty map and marks it as
+          // amended.
+          this.dirtyLocked();
+          this.amended = true;
+        }
+        this.dirty.put(key, new ExpungingValueImpl<>(current = remappingFunction.apply(key, null)));
+      }
+    }
+    return current;
+  }
+
+  @Override
+  @SuppressWarnings("ConstantConditions")
+  public @Nullable V putIfAbsent(final {{ k }} key, final @NonNull V value) {
     requireNonNull(value, "value");
     ExpungingValue<V> entry; Map.Entry<Boolean, V> result;
     if((entry = this.read.get(key)) != null) {
@@ -167,7 +289,7 @@ import java.util.function.IntFunction;
   }
 
   @Override
-  public V put(final {{ k }} key, final @NonNull V value) {
+  public @Nullable V put(final {{ k }} key, final @NonNull V value) {
     return this.putValue(key, value, false);
   }
 
@@ -208,7 +330,7 @@ import java.util.function.IntFunction;
 
   @Override
   @SuppressWarnings("SuspiciousMethodCalls")
-  public V remove(final {{ k }} key) {
+  public @Nullable V remove(final {{ k }} key) {
     ExpungingValue<V> entry;
     if((entry = this.read.get(key)) == null && this.amended) {
       synchronized(this.lock) {
@@ -248,7 +370,7 @@ import java.util.function.IntFunction;
   }
 
   @Override
-  public V replace(final {{ k }} key, final @NonNull V value) {
+  public @Nullable V replace(final {{ k }} key, final @NonNull V value) {
     return this.putValue(key, value, true);
   }
 
@@ -315,6 +437,8 @@ import java.util.function.IntFunction;
       this.misses = 0;
     }
   }
+
+  // Views
 
   @Override
   public @NonNull ObjectSet<Entry<V>> {{ k }}2ObjectEntrySet() {

@@ -1,29 +1,36 @@
 variants:
+  double:
+    k: double # Primitive
+    ka: double # Primitive Alternative
+    KT: Double # Wrapper
+    KA: Double # Abbreviation Alternative
+    K: Double # Abbreviation
+    G: doubles # Group Abbreviation
+  float:
+    k: float # Primitive
+    ka: double # Primitive Alternative
+    KT: Float # Wrapper
+    KA: Double # Abbreviation Alternative
+    K: Float # Abbreviation
+    G: floats # Group Abbreviation
   int:
-    k: int # primitive
-    ka: int # primitive alternative
-    KT: Integer # wrapper
-    KA: Int # wrapper alternative
+    k: int # Primitive
+    ka: int # Primitive Alternative
+    KT: Integer # Wrapper
+    KA: Int # Abbreviation Alternative
     K: Int # Abbreviation
     G: ints # Group Abbreviation
   long:
-    k: long # primitive
-    ka: long # primitive alternative
-    KT: Long # wrapper
-    KA: Long # wrapper alternative
+    k: long # Primitive
+    ka: long # Primitive Alternative
+    KT: Long # Wrapper
+    KA: Long # Abbreviation Alternative
     K: Long # Abbreviation
     G: longs # Group Abbreviation
-  float:
-    k: float # primitive
-    ka: double # primitive alternative
-    KT: Float # wrapper
-    KA: Double # wrapper alternative
-    K: Float # Abbreviation
-    G: floats # Group Abbreviation
-  double:
-    k: double # primitive
-    ka: double # primitive alternative
-    KT: Double # wrapper
-    KA: Double # wrapper alternative
-    K: Double # Abbreviation
-    G: doubles # Group Abbreviation
+  short:
+    k: short # Primitive
+    ka: int # Primitive Alternative
+    KT: Short # Wrapper
+    KA: Int # Abbreviation Alternative
+    K: Short # Abbreviation
+    G: shorts # Group Abbreviation

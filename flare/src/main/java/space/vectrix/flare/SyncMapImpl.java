@@ -281,33 +281,33 @@ import java.util.function.IntFunction;
   @SuppressWarnings("ConstantConditions")
   private V putValue(final @Nullable K key, final @NonNull V value, final boolean onlyIfPresent) {
     requireNonNull(value, "value");
-    ExpungingValue<V> entry; V previous;
-    if((previous = (entry = this.read.get(key)) != null ? entry.get() : null) == null || !entry.trySet(value)) {
-      synchronized(this.lock) {
-        if((entry = this.read.get(key)) != null) {
-          previous = entry.get();
-          // If entry can be absent and previously expunged, add the
-          // entry back to the dirty map.
-          if(onlyIfPresent) {
-            entry.trySet(value);
-          } else if(entry.tryUnexpungeAndSet(value)) {
-            this.dirty.put(key, entry);
-          } else {
-            entry.set(value);
-          }
-        } else if(this.dirty != null && (entry = this.dirty.get(key)) != null) {
-          previous = entry.get();
+    ExpungingValue<V> entry = this.read.get(key);
+    V previous = entry != null ? entry.get() : null;
+    if(entry != null && entry.trySet(value)) return previous;
+    synchronized(this.lock) {
+      if((entry = this.read.get(key)) != null) {
+        previous = entry.get();
+        // If entry can be absent and previously expunged, add the
+        // entry back to the dirty map.
+        if(onlyIfPresent) {
+          entry.trySet(value);
+        } else if(entry.tryUnexpungeAndSet(value)) {
+          this.dirty.put(key, entry);
+        } else {
           entry.set(value);
-          this.missLocked();
-        } else if(!onlyIfPresent) {
-          if(!this.amended) {
-            // Adds the first new key to the dirty map and marks it as
-            // amended.
-            this.dirtyLocked();
-            this.amended = true;
-          }
-          this.dirty.put(key, new ExpungingValueImpl<>(value));
         }
+      } else if(this.dirty != null && (entry = this.dirty.get(key)) != null) {
+        previous = entry.get();
+        entry.set(value);
+        this.missLocked();
+      } else if(!onlyIfPresent) {
+        if(!this.amended) {
+          // Adds the first new key to the dirty map and marks it as
+          // amended.
+          this.dirtyLocked();
+          this.amended = true;
+        }
+        this.dirty.put(key, new ExpungingValueImpl<>(value));
       }
     }
     return previous;

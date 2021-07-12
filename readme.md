@@ -14,24 +14,32 @@ In order to build Flare you simply need to run the `gradle` command. You can fin
 
 ## Dependency
 
-* Maven
-```xml
-<dependency>
-  <groupId>space.vectrix.flare</groupId>
-  <artifactId>flare</artifactId>
-  <version>0.3.0</version>
-</dependency>
-```
-
-* Gradle
+Gradle:
 ```groovy
 repositories {
   mavenCentral()
 }
 
 dependencies {
-  compile "space.vectrix.flare:flare:0.3.0"
+  implementation "space.vectrix.flare:flare:0.3.0"
+  implementation "space.vectrix.flare-fastutil:0.3.0"
 }
+```
+
+Maven:
+```xml
+<dependencies>
+  <dependency>
+    <groupId>space.vectrix.flare</groupId>
+    <artifactId>flare</artifactId>
+    <version>0.3.0</version>
+  </dependency>
+  <dependency>
+    <groupId>space.vectrix.flare</groupId>
+    <artifactId>flare-fastutil</artifactId>
+    <version>0.3.0</version>
+  </dependency>
+</dependencies>
 ```
 
 ## Credits
@@ -47,3 +55,5 @@ Initially designed for [Mineteria](https://mineteria.com/).
 
 [connorhartley]: https://github.com/connorhartley
 [astei]: https://github.com/astei
+
+[Gradle]: https://www.gradle.org/

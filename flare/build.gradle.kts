@@ -1,9 +1,5 @@
-dependencies {
-  api("org.checkerframework:checker-qual:3.15.0")
+plugins {
+  id("flare.common-conventions")
 }
 
-tasks.jar {
-  manifest.attributes(
-    "Automatic-Module-Name" to "space.vectrix.flare"
-  )
-}
+applyJarMetadata("space.vectrix.flare")

@@ -1,5 +1,5 @@
 plugins {
-  id("flare.common-conventions")
+  id("flare.shared-conventions")
 }
 
 applyJarMetadata("space.vectrix.flare")

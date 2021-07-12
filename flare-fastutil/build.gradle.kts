@@ -1,7 +1,7 @@
 import space.vectrix.flare.templates.GenerateTemplates
 
 plugins {
-  id("flare.common-conventions")
+  id("flare.shared-conventions")
   id("flare-templates")
 }
 

@@ -1,4 +1,5 @@
 plugins {
+  id("flare.common-conventions")
   id("me.champeau.jmh") version "0.6.5"
 }
 

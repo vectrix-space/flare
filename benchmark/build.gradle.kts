@@ -1,6 +1,6 @@
 plugins {
   id("flare.common-conventions")
-  id("me.champeau.jmh") version "0.6.5"
+  id("me.champeau.jmh") version "0.6.6"
 }
 
 dependencies {

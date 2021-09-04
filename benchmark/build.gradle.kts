@@ -4,7 +4,7 @@ plugins {
 }
 
 dependencies {
-  jmh("org.openjdk.jmh:jmh-core:1.32")
+  jmh("org.openjdk.jmh:jmh-core:1.33")
   jmh("org.openjdk.jmh:jmh-generator-annprocess:1.32")
   implementation(project(":flare"))
   implementation(project(":flare-fastutil"))

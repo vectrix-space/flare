@@ -6,7 +6,7 @@ plugins {
 }
 
 dependencies {
-  api("it.unimi.dsi:fastutil:8.5.4")
+  api("it.unimi.dsi:fastutil:8.5.5")
 }
 
 sourceSets {

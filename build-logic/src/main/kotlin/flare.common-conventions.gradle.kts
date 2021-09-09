@@ -12,7 +12,7 @@ repositories {
 }
 
 dependencies {
-  compileOnlyApi("org.checkerframework:checker-qual:3.17.0")
+  compileOnlyApi("org.checkerframework:checker-qual:3.18.0")
   testImplementation("net.jodah:concurrentunit:0.4.6")
   testImplementation("com.google.guava:guava-testlib:30.1.1-jre")
   testImplementation(platform("org.junit:junit-bom:5.7.2"))

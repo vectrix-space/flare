@@ -1,3 +1,28 @@
+/*
+ * This file is part of flare, licensed under the MIT License (MIT).
+ *
+ * Copyright (c) SpongePowered <https://spongepowered.org>
+ * Copyright (c) vectrix.space <https://vectrix.space/>
+ * Copyright (c) contributors
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
 package space.vectrix.flare.templates;
 
 import net.kyori.mammoth.Configurable;
@@ -10,9 +35,11 @@ import org.gradle.api.NamedDomainObjectSet;
 import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.provider.MapProperty;
+import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.InputFiles;
 import org.gradle.api.tasks.Nested;
+import org.gradle.api.tasks.Optional;
 import org.snakeyaml.engine.v2.api.Load;
 import org.snakeyaml.engine.v2.api.LoadSettings;
 import org.snakeyaml.engine.v2.exceptions.YamlEngineException;
@@ -43,6 +70,7 @@ public abstract class TemplateSet implements Named {
   private final ConfigurableFileCollection dataFiles;
   private final MapProperty<String, Object> properties;
   private final NamedDomainObjectContainer<Variant> variants;
+  private final Property<String> header;
   private final String name;
 
   @Inject
@@ -51,6 +79,7 @@ public abstract class TemplateSet implements Named {
     this.dataFiles = objects.fileCollection();
     this.properties = objects.mapProperty(String.class, Object.class);
     this.variants = objects.domainObjectContainer(Variant.class);
+    this.header = objects.property(String.class);
   }
 
   @Input
@@ -81,6 +110,19 @@ public abstract class TemplateSet implements Named {
   @Nested
   public MapProperty<String, Object> getProperties() {
     return this.properties;
+  }
+
+  /**
+   * A literal header to insert at the top of generated source files.
+   *
+   * <p>This property is optional.</p>
+   *
+   * @return the header
+   */
+  @Input
+  @Optional
+  public Property<String> getHeader() {
+    return this.header;
   }
 
   // variant
@@ -189,7 +231,7 @@ public abstract class TemplateSet implements Named {
 
         for (final Map.Entry<?, ?> variant : ((Map<?, ?>) variants).entrySet()) {
           if (!(variant.getValue() instanceof Map<?, ?>)) {
-            throw new InvalidUserDataException("space.vectrix.flare.templates.Variant '" + variant.getKey() + "' was expected to have a mapping value, but it was a " + variant.getValue().getClass());
+            throw new InvalidUserDataException("Variant '" + variant.getKey() + "' was expected to have a mapping value, but it was a " + variant.getValue().getClass());
           }
           output.put(String.valueOf(variant.getKey()), TemplateSet.makeStringKeys((Map<?, ?>) variant.getValue()));
         }

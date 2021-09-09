@@ -1,3 +1,28 @@
+/*
+ * This file is part of flare, licensed under the MIT License (MIT).
+ *
+ * Copyright (c) SpongePowered <https://spongepowered.org>
+ * Copyright (c) vectrix.space <https://vectrix.space/>
+ * Copyright (c) contributors
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
 package space.vectrix.flare.templates;
 
 import com.mitchellbosecke.pebble.PebbleEngine;
@@ -5,6 +30,8 @@ import com.mitchellbosecke.pebble.loader.DelegatingLoader;
 import com.mitchellbosecke.pebble.loader.FileLoader;
 import com.mitchellbosecke.pebble.loader.Loader;
 import com.mitchellbosecke.pebble.template.PebbleTemplate;
+import net.kyori.mammoth.Properties;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.InvalidUserDataException;
 import org.gradle.api.file.DirectoryProperty;
@@ -82,6 +109,7 @@ public abstract class GenerateTemplates extends DefaultTask {
     final Path outputDirectory = this.getOutputDir().get().getAsFile().toPath();
     Files.createDirectories(outputDirectory);
     final Set<Map<String, Object>> variants = this.getBaseSet().get().prepareDataForGeneration();
+    final @Nullable String header = Properties.finalized(this.getBaseSet().get().getHeader()).getOrNull();
 
     final Set<String> seenOutputs = new HashSet<>();
     Files.walkFileTree(sourceDirectory, new FileVisitor<Path>() {
@@ -114,6 +142,10 @@ public abstract class GenerateTemplates extends DefaultTask {
           final Path output = outputDirectory.resolve(outputFile);
           Files.createDirectories(output.getParent());
           try (final BufferedWriter writer = Files.newBufferedWriter(output, StandardCharsets.UTF_8)) {
+            if (header != null) {
+              writer.write(header);
+              writer.write(System.lineSeparator());
+            }
             template.evaluate(writer, variant);
           }
         }

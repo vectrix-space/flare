@@ -1,6 +1,7 @@
 plugins {
   id("java")
   id("java-gradle-plugin")
+  id("org.cadixdev.licenser") version "0.6.1"
 }
 
 repositories {
@@ -24,4 +25,9 @@ gradlePlugin {
       implementationClass = "space.vectrix.flare.templates.TemplateGeneratorPlugin"
     }
   }
+}
+
+license {
+  header(project.file("license_header.txt"))
+  newLine(false)
 }

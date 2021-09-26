@@ -332,7 +332,7 @@ import java.util.function.IntFunction;
   }
 
   @Override
-  @SuppressWarnings("SuspiciousMethodCalls")
+  @SuppressWarnings({"SuspiciousMethodCalls", "AssignmentUsedAsCondition"})
   public boolean remove(final @Nullable Object key, final @NonNull Object value) {
     requireNonNull(value, "value");
     ExpungingValue<V> entry;

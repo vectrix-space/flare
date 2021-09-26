@@ -21,8 +21,8 @@ repositories {
 }
 
 dependencies {
-  implementation "space.vectrix.flare:flare:0.3.0"
-  implementation "space.vectrix.flare-fastutil:0.3.0"
+  implementation "space.vectrix.flare:flare:1.0.0"
+  implementation "space.vectrix.flare-fastutil:1.0.0"
 }
 ```
 
@@ -32,12 +32,12 @@ Maven:
   <dependency>
     <groupId>space.vectrix.flare</groupId>
     <artifactId>flare</artifactId>
-    <version>0.3.0</version>
+    <version>1.0.0</version>
   </dependency>
   <dependency>
     <groupId>space.vectrix.flare</groupId>
     <artifactId>flare-fastutil</artifactId>
-    <version>0.3.0</version>
+    <version>1.0.0</version>
   </dependency>
 </dependencies>
 ```

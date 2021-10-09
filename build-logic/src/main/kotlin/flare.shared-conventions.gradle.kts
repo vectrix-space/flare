@@ -34,9 +34,17 @@ signing {
   sign(configurations.archives.get())
 }
 
-tasks.withType<PublishToMavenRepository>().configureEach {
-  onlyIf {
-    val version: String = project.version.toString()
-    System.getenv("CI") == null || version.endsWith("-SNAPSHOT")
+tasks {
+  withType<PublishToMavenRepository>().configureEach {
+    onlyIf {
+      val version: String = project.version.toString()
+      System.getenv("CI") == null || version.endsWith("-SNAPSHOT")
+    }
+  }
+
+  withType<Sign>().configureEach {
+    onlyIf {
+      System.getenv("CI") == null
+    }
   }
 }

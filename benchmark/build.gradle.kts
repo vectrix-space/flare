@@ -1,6 +1,10 @@
 plugins {
-  id("flare.common-conventions")
+  `java-library`
   id("me.champeau.jmh") version "0.6.6"
+}
+
+repositories {
+  mavenCentral()
 }
 
 dependencies {

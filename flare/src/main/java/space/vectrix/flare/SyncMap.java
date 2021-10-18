@@ -225,7 +225,7 @@ public interface SyncMap<K, V> extends ConcurrentMap<K, V> {
      * @return the result entry
      * @since 2.0.0
      */
-    InsertionResult<V> setIfAbsent(final @NonNull V value);
+    @NonNull InsertionResult<V> setIfAbsent(final @NonNull V value);
 
     /**
      * Computes the specified value if a value doesn't already exist,
@@ -237,7 +237,7 @@ public interface SyncMap<K, V> extends ConcurrentMap<K, V> {
      * @return the result entry
      * @since 2.0.0
      */
-    <K> InsertionResult<V> computeIfAbsent(final @Nullable K key, final @NonNull Function<? super K, ? extends V> function);
+    <K> @NonNull InsertionResult<V> computeIfAbsent(final @Nullable K key, final @NonNull Function<? super K, ? extends V> function);
 
     /**
      * Computes the specified value if a value already exists, returning
@@ -249,7 +249,7 @@ public interface SyncMap<K, V> extends ConcurrentMap<K, V> {
      * @return the result entry
      * @since 2.0.0
      */
-    <K> InsertionResult<V> computeIfPresent(final @Nullable K key, final @NonNull BiFunction<? super K, ? super V, ? extends V> remappingFunction);
+    <K> @NonNull InsertionResult<V> computeIfPresent(final @Nullable K key, final @NonNull BiFunction<? super K, ? super V, ? extends V> remappingFunction);
 
     /**
      * Computes the specified value, returning an {@link InsertionResult}.
@@ -260,7 +260,7 @@ public interface SyncMap<K, V> extends ConcurrentMap<K, V> {
      * @return the result entry
      * @since 2.0.0
      */
-    <K> InsertionResult<V> compute(final @Nullable K key, final @NonNull BiFunction<? super K, ? super V, ? extends V> remappingFunction);
+    <K> @NonNull InsertionResult<V> compute(final @Nullable K key, final @NonNull BiFunction<? super K, ? super V, ? extends V> remappingFunction);
 
     /**
      * Sets the value.

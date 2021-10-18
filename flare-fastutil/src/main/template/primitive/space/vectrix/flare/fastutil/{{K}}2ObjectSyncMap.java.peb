@@ -196,7 +196,7 @@ public interface {{ K }}2ObjectSyncMap<V> extends {{ K }}2ObjectMap<V> {
      * @return the result entry
      * @since 2.0.0
      */
-    InsertionResult<V> setIfAbsent(final @NonNull V value);
+    @NonNull InsertionResult<V> setIfAbsent(final @NonNull V value);
 
     /**
      * Computes the specified value if a value doesn't already exist,
@@ -207,7 +207,7 @@ public interface {{ K }}2ObjectSyncMap<V> extends {{ K }}2ObjectMap<V> {
      * @return the result entry
      * @since 2.0.0
      */
-    InsertionResult<V> computeIfAbsent(final {{ k }} key, final @NonNull {{ KA }}Function<? extends V> function);
+    @NonNull InsertionResult<V> computeIfAbsent(final {{ k }} key, final @NonNull {{ KA }}Function<? extends V> function);
 
     /**
      * Computes the specified value if a value doesn't already exist,
@@ -218,7 +218,7 @@ public interface {{ K }}2ObjectSyncMap<V> extends {{ K }}2ObjectMap<V> {
      * @return the result entry
      * @since 2.0.0
      */
-    InsertionResult<V> computeIfAbsentPrimitive(final {{ k }} key, final @NonNull {{ K }}2ObjectFunction<? extends V> function);
+    @NonNull InsertionResult<V> computeIfAbsentPrimitive(final {{ k }} key, final @NonNull {{ K }}2ObjectFunction<? extends V> function);
 
     /**
      * Computes the specified value if a value already exists, returning
@@ -229,7 +229,7 @@ public interface {{ K }}2ObjectSyncMap<V> extends {{ K }}2ObjectMap<V> {
      * @return the result entry
      * @since 2.0.0
      */
-    InsertionResult<V> computeIfPresent(final {{ k }} key, final @NonNull BiFunction<? super {{ KT }}, ? super V, ? extends V> remappingFunction);
+    @NonNull InsertionResult<V> computeIfPresent(final {{ k }} key, final @NonNull BiFunction<? super {{ KT }}, ? super V, ? extends V> remappingFunction);
 
     /**
      * Computes the specified value, returning an {@link InsertionResult}.
@@ -239,7 +239,7 @@ public interface {{ K }}2ObjectSyncMap<V> extends {{ K }}2ObjectMap<V> {
      * @return the result entry
      * @since 2.0.0
      */
-    InsertionResult<V> compute(final {{ k }} key, final @NonNull BiFunction<? super {{ KT }}, ? super V, ? extends V> remappingFunction);
+    @NonNull InsertionResult<V> compute(final {{ k }} key, final @NonNull BiFunction<? super {{ KT }}, ? super V, ? extends V> remappingFunction);
 
     /**
      * Sets the value.

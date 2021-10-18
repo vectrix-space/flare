@@ -160,7 +160,7 @@ import static java.util.Objects.requireNonNull;
         }
       }
     }
-    return result != null ? result.current() : null;
+    return result.current();
   }
 
   @Override
@@ -254,7 +254,7 @@ import static java.util.Objects.requireNonNull;
         }
       }
     }
-    return result != null ? result.current() : null;
+    return result.current();
   }
 
   @Override
@@ -530,7 +530,7 @@ import static java.util.Objects.requireNonNull;
     }
 
     @Override
-    public InsertionResult<V> computeIfPresent(final {{ k }} key, final @NonNull BiFunction<? super {{ KT }}, ? super V, ? extends V> remappingFunction) {
+    public @NonNull InsertionResult<V> computeIfPresent(final {{ k }} key, final @NonNull BiFunction<? super {{ KT }}, ? super V, ? extends V> remappingFunction) {
       V next = null;
       for(; ; ) {
         final Object previous = this.value;
@@ -543,7 +543,7 @@ import static java.util.Objects.requireNonNull;
     }
 
     @Override
-    public InsertionResult<V> compute(final {{ k }} key, final @NonNull BiFunction<? super {{ KT }}, ? super V, ? extends V> remappingFunction) {
+    public @NonNull InsertionResult<V> compute(final {{ k }} key, final @NonNull BiFunction<? super {{ KT }}, ? super V, ? extends V> remappingFunction) {
       V next = null;
       for(; ; ) {
         final Object previous = this.value;

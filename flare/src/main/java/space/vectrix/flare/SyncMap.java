@@ -32,6 +32,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.IntFunction;
 
 /**
@@ -74,7 +76,7 @@ public interface SyncMap<K, V> extends ConcurrentMap<K, V> {
    */
   @SuppressWarnings("RedundantTypeArguments")
   static <K, V> @NonNull SyncMap<K, V> hashmap() {
-    return of(HashMap<K, ExpungingValue<V>>::new, 16);
+    return of(HashMap<K, ExpungingEntry<V>>::new, 16);
   }
 
   /**
@@ -89,23 +91,7 @@ public interface SyncMap<K, V> extends ConcurrentMap<K, V> {
    */
   @SuppressWarnings("RedundantTypeArguments")
   static <K, V> @NonNull SyncMap<K, V> hashmap(final int initialCapacity) {
-    return of(HashMap<K, ExpungingValue<V>>::new, initialCapacity);
-  }
-
-  /**
-   * Returns a new sync map, backed by a {@link HashMap} with a provided initial
-   * capacity and promotion factor.
-   *
-   * @param initialCapacity the initial capacity of the hash map
-   * @param promotionFactor the promotion factor of the sync map
-   * @param <K> the key type
-   * @param <V> the value type
-   * @return a sync map
-   * @since 0.3.0
-   */
-  @SuppressWarnings("RedundantTypeArguments")
-  static <K, V> @NonNull SyncMap<K, V> hashmap(final int initialCapacity, final float promotionFactor) {
-    return of(HashMap<K, ExpungingValue<V>>::new, initialCapacity, promotionFactor);
+    return of(HashMap<K, ExpungingEntry<V>>::new, initialCapacity);
   }
 
   /**
@@ -117,7 +103,7 @@ public interface SyncMap<K, V> extends ConcurrentMap<K, V> {
    */
   @SuppressWarnings("RedundantTypeArguments")
   static <K> @NonNull Set<K> hashset() {
-    return setOf(HashMap<K, ExpungingValue<Boolean>>::new, 16);
+    return setOf(HashMap<K, ExpungingEntry<Boolean>>::new, 16);
   }
 
   /**
@@ -131,22 +117,7 @@ public interface SyncMap<K, V> extends ConcurrentMap<K, V> {
    */
   @SuppressWarnings("RedundantTypeArguments")
   static <K> @NonNull Set<K> hashset(final int initialCapacity) {
-    return setOf(HashMap<K, ExpungingValue<Boolean>>::new, initialCapacity);
-  }
-
-  /**
-   * Returns a new mutable set view of a sync map, backed by a {@link HashMap} with
-   * a provided initial capacity and promotion factor.
-   *
-   * @param initialCapacity the initial capacity of the hash map
-   * @param promotionFactor the promotion factor of the sync map
-   * @param <K> the key type
-   * @return a mutable set view of a sync map
-   * @since 0.3.0
-   */
-  @SuppressWarnings("RedundantTypeArguments")
-  static <K> @NonNull Set<K> hashset(final int initialCapacity, final float promotionFactor) {
-    return setOf(HashMap<K, ExpungingValue<Boolean>>::new, initialCapacity, promotionFactor);
+    return setOf(HashMap<K, ExpungingEntry<Boolean>>::new, initialCapacity);
   }
 
   /**
@@ -160,24 +131,8 @@ public interface SyncMap<K, V> extends ConcurrentMap<K, V> {
    * @return a sync map
    * @since 0.2.0
    */
-  static <K, V> @NonNull SyncMap<K, V> of(final @NonNull IntFunction<Map<K, ExpungingValue<V>>> function, final int initialCapacity) {
+  static <K, V> @NonNull SyncMap<K, V> of(final @NonNull IntFunction<Map<K, ExpungingEntry<V>>> function, final int initialCapacity) {
     return new SyncMapImpl<>(function, initialCapacity);
-  }
-
-  /**
-   * Returns a new sync map, backed by the provided {@link Map} implementation
-   * with a provided initial capacity and promotion factor.
-   *
-   * @param function the map creation function
-   * @param initialCapacity the map initial capacity
-   * @param promotionFactor the map promotion factor
-   * @param <K> the key type
-   * @param <V> the value type
-   * @return a sync map
-   * @since 0.3.0
-   */
-  static <K, V> @NonNull SyncMap<K, V> of(final @NonNull IntFunction<Map<K, ExpungingValue<V>>> function, final int initialCapacity, final float promotionFactor) {
-    return new SyncMapImpl<>(function, initialCapacity, promotionFactor);
   }
 
   /**
@@ -190,24 +145,8 @@ public interface SyncMap<K, V> extends ConcurrentMap<K, V> {
    * @return a mutable set view of a sync map
    * @since 0.2.0
    */
-  static <K> @NonNull Set<K> setOf(final @NonNull IntFunction<Map<K, ExpungingValue<Boolean>>> function, final int initialCapacity) {
+  static <K> @NonNull Set<K> setOf(final @NonNull IntFunction<Map<K, ExpungingEntry<Boolean>>> function, final int initialCapacity) {
     return Collections.newSetFromMap(new SyncMapImpl<>(function, initialCapacity));
-  }
-
-  /**
-   * Returns a new mutable set view of a sync map, backed by the provided
-   * {@link Map} implementation with a provided initial capacity and promotion
-   * factor.
-   *
-   * @param function the map creation function
-   * @param initialCapacity the map initial capacity
-   * @param promotionFactor the map promotion factor
-   * @param <K> they key type
-   * @return a mutable set view of a sync map
-   * @since 0.3.0
-   */
-  static <K> @NonNull Set<K> setOf(final @NonNull IntFunction<Map<K, ExpungingValue<Boolean>>> function, final int initialCapacity, final float promotionFactor) {
-    return Collections.newSetFromMap(new SyncMapImpl<>(function, initialCapacity, promotionFactor));
   }
 
   /**
@@ -244,100 +183,210 @@ public interface SyncMap<K, V> extends ConcurrentMap<K, V> {
   void clear();
 
   /**
-   * The expunging value the backing map wraps for its values.
+   * The expunging entry the backing map wraps for its values.
    *
-   * @param <V> the backing value type
-   * @since 0.1.0
+   * @param <V> the value type
+   * @since 2.0.0
    */
-  interface ExpungingValue<V> {
+  interface ExpungingEntry<V> {
     /**
-     * Returns the backing value, which may be {@code null} if it has been expunged.
+     * Returns {@code true} if this entry has a value, that is
+     * neither {@code null} or expunged. Otherwise, it returns
+     * {@code false}.
      *
-     * @return the backing value if it has not been expunged
-     * @since 0.1.0
-     */
-    @Nullable V get();
-
-    /**
-     * Attempts to place the value into the map if it is absent.
-     *
-     * @param value the value to place in the map
-     * @return {@link Map.Entry} with a {@code false} key and {@code null} value if the element
-     *         was expunged, otherwise a {@code true} key and value from the map
-     * @since 0.1.0
-     */
-    Map.@NonNull Entry<Boolean, V> putIfAbsent(final @NonNull V value);
-
-    /**
-     * Returns {@code true} if this element has a value (it is neither expunged nor {@code null}).
-     *
-     * @return {@code true} if this entry exists, otherwise {@code false}
-     * @since 0.1.0
+     * @return true if a value exists, otherwise false
+     * @since 2.0.0
      */
     boolean exists();
 
     /**
-     * Sets the backing value.
+     * Returns the value or {@code null} if it has been expunged.
      *
-     * @param value the value
-     * @return the value to be stored
-     * @since 0.3.0
+     * @return the value or null if it is expunged
+     * @since 2.0.0
      */
-    @NonNull V set(final @NonNull V value);
+    @Nullable V get();
 
     /**
-     * Tries to replace the backing value, which can be set to {@code null}. This operation has no effect
-     * if the entry was expunged.
+     * Returns the value if it exists, otherwise it returns the
+     * default value.
      *
-     * @param compare the value to compare against
-     * @param value the new value to be stored
-     * @return {@code true} if successful, otherwise {@code false}
-     * @since 0.1.0
+     * @param other the default value
+     * @return the value if present, otherwise the default value
+     * @since 2.0.0
+     */
+    @NonNull V getOr(final @NonNull V other);
+
+    /**
+     * Sets the specified value if a value doesn't already exist,
+     * returning an {@link InsertionResult}.
+     *
+     * @param value the value
+     * @return the result entry
+     * @since 2.0.0
+     */
+    InsertionResult<V> setIfAbsent(final @NonNull V value);
+
+    /**
+     * Computes the specified value if a value doesn't already exist,
+     * returning an {@link InsertionResult}.
+     *
+     * @param key the key
+     * @param function the function
+     * @param <K> the key type
+     * @return the result entry
+     * @since 2.0.0
+     */
+    <K> InsertionResult<V> computeIfAbsent(final @Nullable K key, final @NonNull Function<? super K, ? extends V> function);
+
+    /**
+     * Computes the specified value if a value already exists, returning
+     * an {@link InsertionResult}.
+     *
+     * @param key the key
+     * @param remappingFunction the function
+     * @param <K> the key type
+     * @return the result entry
+     * @since 2.0.0
+     */
+    <K> InsertionResult<V> computeIfPresent(final @Nullable K key, final @NonNull BiFunction<? super K, ? super V, ? extends V> remappingFunction);
+
+    /**
+     * Computes the specified value, returning an {@link InsertionResult}.
+     *
+     * @param key the key
+     * @param remappingFunction the function
+     * @param <K> the key type
+     * @return the result entry
+     * @since 2.0.0
+     */
+    <K> InsertionResult<V> compute(final @Nullable K key, final @NonNull BiFunction<? super K, ? super V, ? extends V> remappingFunction);
+
+    /**
+     * Sets the value.
+     *
+     * @param value the value
+     * @since 2.0.0
+     */
+    void set(final @NonNull V value);
+
+    /**
+     * Replaces the current value if it matches {@code compare}
+     * with the new {@code value} and returns {@code true}. Otherwise,
+     * it returns {@code false}.
+     *
+     * @param compare The comparing value
+     * @param value The new value
+     * @return true if the value was replaced, otherwise false
+     * @since 2.0.0
      */
     boolean replace(final @NonNull Object compare, final @Nullable V value);
 
     /**
-     * Clears the value stored in this entry. Has no effect if {@code null} is stored in the map or
-     * the entry was expunged.
+     * Clears the value.
      *
-     * @return the previous element stored, or {@code null} if the entry had been expunged
-     * @since 0.1.0
+     * @return the value
+     * @since 2.0.0
      */
     @Nullable V clear();
 
     /**
-     * Tries to set the backing element. If the entry is expunged, this operation
-     * will fail.
+     * Attempts to set the value, if the value is not expunged
+     * and returns {@code true}. Otherwise, it returns {@code false}.
      *
-     * @param value the new value
-     * @return {@code true} if the entry was not expunged, {@code false} otherwise
-     * @since 0.1.0
+     * @return true if the value was set, otherwise false
+     * @since 2.0.0
      */
     boolean trySet(final @NonNull V value);
 
     /**
-     * Tries to mark the entry as expunged if its value is {@code null}.
+     * Attempts to replace the value, if the value is not expunged or
+     * {@code null} and returns the previous value. Otherwise, it returns
+     * {@code null}.
      *
-     * @return whether or not the item has been expunged
-     * @since 0.1.0
+     * @param value the value
+     * @return the previous value if it exists, otherwise null
+     * @since 2.0.0
      */
-    boolean tryMarkExpunged();
+    @Nullable V tryReplace(final @NonNull V value);
 
     /**
-     * Tries to set the backing value, which can be set to {@code null}, if the entry was expunged.
+     * Attempts to expunge the value, if the value is
+     * {@code null} and returns {@code true}. Otherwise, it returns
+     * {@code false}.
      *
-     * @param value the new value
-     * @return {@code true} if the entry was unexpunged, otherwise {@code false}
-     * @since 0.1.0
+     * @return true if the value was expunged, otherwise false
+     * @since 2.0.0
      */
-    boolean tryUnexpungeAndSet(final @Nullable V value);
+    boolean tryExpunge();
 
     /**
-     * Tries to unexpunge the backing value, if the entry was previously expunged.
+     * Attempts to unexpunge the value and set it, if the value
+     * was expunged and returns {@code true}. Otherwise, it returns
+     * {@code false}.
      *
-     * @return {@code true} if the entry was unexpunged, otherwise {@code false}
-     * @since 0.3.0
+     * @param value the value
+     * @return true if the value was unexpunged, otherwise false
+     * @since 2.0.0
      */
-    boolean tryUnexpunge();
+    boolean tryUnexpungeAndSet(final @NonNull V value);
+
+    /**
+     * Attempts to unexpunge the value and compute it, if the value
+     * was expunged and returns {@code true}. Otherwise, it returns
+     * {@code false}.
+     *
+     * @param key the key
+     * @param function the function
+     * @param <K> the key type
+     * @return true if the value was unexpunged, otherwise false
+     * @since 2.0.0
+     */
+    <K> boolean tryUnexpungeAndCompute(final @Nullable K key, final @NonNull Function<? super K, ? extends V> function);
+
+    /**
+     * Attempts to unexpunge the value and compute it, if the value
+     * was expunged and returns {@code true}. Otherwise, it returns
+     * {@code false}.
+     *
+     * @param key the key
+     * @param remappingFunction the remapping function
+     * @param <K> the key type
+     * @return true if the value was unexpunged, otherwise false
+     * @since 2.0.0
+     */
+    <K> boolean tryUnexpungeAndCompute(final @Nullable K key, final @NonNull BiFunction<? super K, ? super V, ? extends V> remappingFunction);
+  }
+
+  /**
+   * The insertion result.
+   *
+   * @param <V> the value type
+   * @since 2.0.0
+   */
+  interface InsertionResult<V> {
+    /**
+     * The operation result.
+     *
+     * @return the operation
+     * @since 2.0.0
+     */
+    byte operation();
+
+    /**
+     * The previous value.
+     *
+     * @return the input
+     * @since 2.0.0
+     */
+    @Nullable V previous();
+
+    /**
+     * The current value.
+     *
+     * @return the output
+     * @since 2.0.0
+     */
+    @Nullable V current();
   }
 }

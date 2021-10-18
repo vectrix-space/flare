@@ -1,11 +1,5 @@
 package space.vectrix.flare;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-
 import it.unimi.dsi.fastutil.{{ G }}.{{ K }}Iterator;
 import it.unimi.dsi.fastutil.{{ G }}.{{ K }}Set;
 import it.unimi.dsi.fastutil.{{ G }}.{{ K }}2ObjectFunction;
@@ -13,11 +7,15 @@ import it.unimi.dsi.fastutil.{{ G }}.{{ K }}2ObjectMap;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.junit.jupiter.api.Test;
 
-import java.util.Collection;
 import java.util.ConcurrentModificationException;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Set;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public abstract class {{ K }}2ObjectAbstractMapTest<V> {
   /**
@@ -118,86 +116,57 @@ public abstract class {{ K }}2ObjectAbstractMapTest<V> {
   // Compute Absent
 
   @Test
-  public void testComputeAbsent1() {
-    final {{ K }}2ObjectMap<V> map = this.populate(this.createMap(), 3);
+  public void testComputeIfAbsent() {
+    final {{ K }}2ObjectMap<V> map = this.createMap();
     assertEquals(this.value(0), map.computeIfAbsent(this.key(0), new {{ K }}2ObjectFunction<V>() {
         @Override
         public V get(final {{ k }} key) {
-          return {{ K }}2ObjectAbstractMapTest.this.value(3);
+          assertEquals({{ K }}2ObjectAbstractMapTest.this.key(0), key, "Map should input the key at index 0.");
+          return {{ K }}2ObjectAbstractMapTest.this.value(0);
         }
-    }), "Map should return the value at index 0, when computing if absent the key at index 0.");
-    assertEquals(this.value(0), map.get(this.key(0)), "Map should return the value at index 0, when retrieving the key at index 0.");
-    assertEquals(this.value(3), map.computeIfAbsent(this.key(3), new {{ K }}2ObjectFunction<V>() {
+    }), "Map should return the computed value at index 0.");
+    for(int i = 0; i < 10; i++) {
+      assertEquals(this.value(0), map.get(this.key(0)), "Map should return the value at index 0 when no mutation of the key at index 0 should have occurred.");
+    }
+    assertEquals(this.value(0), map.computeIfAbsent(this.key(0), new {{ K }}2ObjectFunction<V>() {
         @Override
         public V get(final {{ k }} key) {
-          assertEquals({{ K }}2ObjectAbstractMapTest.this.key(3), key, "Map should input the key at index 3.");
-          return {{ K }}2ObjectAbstractMapTest.this.value(3);
-        }
-    }), "Map should return the computed value at index 3.");
-    assertEquals(this.value(3), map.get(this.key(3)), "Map should return the value at index 3, when retrieving the key at index 3.");
-    assertNull(map.computeIfAbsent(this.key(4), new {{ K }}2ObjectFunction<V>() {
-        @Override
-        public V get(final {{ k }} key) {
-          assertEquals({{ K }}2ObjectAbstractMapTest.this.key(4), key, "Map should input the key at index 4.");
+          assertEquals({{ K }}2ObjectAbstractMapTest.this.key(0), key, "Map should input the key at index 0.");
           return null;
         }
-    }), "Map should return the computed null value at index 4.");
-  }
-
-  @Test
-  public void testComputeAbsent2() {
-    final {{ K }}2ObjectMap<V> map = this.populate(this.createMap(), 3);
-    assertEquals(this.value(0), map.computeIfAbsent(this.key(0), key -> this.value(3)), "Map should return the value at index 0, when computing if absent the key at index 0.");
-    assertEquals(this.value(0), map.get(this.key(0)), "Map should return the value at index 0, when retrieving the key at index 0.");
-    assertEquals(this.value(3), map.computeIfAbsent(this.key(3), key -> {
-      assertEquals(this.key(3), key, "Map should input the key at index 3.");
-      return this.value(3);
-    }), "Map should return the computed value at index 3.");
-    assertEquals(this.value(3), map.get(this.key(3)), "Map should return the value at index 3, when retrieving the key at index 3.");
-    assertNull(map.computeIfAbsent(this.key(4), key -> {
-      assertEquals(this.key(4), key, "Map should input the key at index 4.");
-      return null;
-    }), "Map should return the computed null value at index 4.");
+    }), "Map should return the value at index 0, when attempting to computeIfAbsent the key at index 0.");
+    assertEquals(this.value(0), map.get(this.key(0)), "Map should return the value at index 0 when no mutation of the key at index 0 should have occurred.");
   }
 
   // Compute Present
 
   @Test
-  public void testComputePresent() {
-    final {{ K }}2ObjectMap<V> map = this.populate(this.createMap(), 3);
-    assertEquals(this.value(3), map.computeIfPresent(this.key(0), (key, value) -> {
-      assertEquals(this.key(0), key, "Map should input the key at index 0.");
-      assertEquals(this.value(0), value, "Map should input the value at index 0.");
-      return this.value(3);
-    }), "Map should return the value at index 3, when computing if present the key at index 0.");
-    assertEquals(this.value(3), map.get(this.key(0)), "Map should return the value at index 3, when retrieving the key at index 0.");
-    assertNull(map.computeIfPresent(this.key(1), (key, value) -> {
-      assertEquals(this.key(1), key, "Map should input the key at index 1.");
-      assertEquals(this.value(1), value, "Map should input the value at index 1.");
-      return null;
-    }), "Map should return the computed null value at index 1.");
-    assertFalse(map.containsKey(this.key(1)), "Map should no longer contain the value at index 1.");
-    assertNull(map.computeIfPresent(this.key(3), (key, value) -> this.value(3)), "Map should return the computed null value at index 3.");
+  public void testComputeIfPresent() {
+    final {{ K }}2ObjectMap<V> map = this.createMap();
+    assertNull(map.computeIfPresent(this.key(0), (ignoredKey, ignoredValue) -> this.value(0)), "Map should return the null value at index 0.");
+    map.put(this.key(0), this.value(0));
+    for(int i = 0; i < 10; i++) {
+      assertEquals(this.value(0), map.get(this.key(0)), "Map should return the value at index 0 when no mutation of the key at index 0 should have occurred.");
+    }
+    assertEquals(this.value(2), map.computeIfPresent(this.key(0), (ignoredKey, ignoredValue) -> this.value(2)), "Map should return the value at index 2, when attempting to computeIfPresent the key at index 0.");
+    assertEquals(this.value(2), map.get(this.key(0)), "Map should return the value at index 2 when mutation of the key at index 0 should have occurred.");
+    assertNull(map.computeIfPresent(this.key(0), (ignoredKey, ignoredValue) -> null), "Map should return null when mutation  of the key at index 0 should have occurred.");
+    assertNull(map.get(this.key(0)), "Map should return null for key at index 0.");
   }
 
   // Compute
 
   @Test
   public void testCompute() {
-    final {{ K }}2ObjectMap<V> map = this.populate(this.createMap(), 3);
-    assertEquals(this.value(3), map.compute(this.key(0), (key, value) -> {
-      assertEquals(this.key(0), key, "Map should input the key at index 0.");
-      assertEquals(this.value(0), value, "Map should input the value at index 0.");
-      return this.value(3);
-    }), "Map should return the value at index 3, when computing if present the key at index 0.");
-    assertEquals(this.value(3), map.get(this.key(0)), "Map should return the value at index 3, when retrieving the key at index 0.");
-    assertNull(map.compute(this.key(1), (key, value) -> {
-      assertEquals(this.key(1), key, "Map should input the key at index 1.");
-      assertEquals(this.value(1), value, "Map should input the value at index 1.");
-      return null;
-    }), "Map should return the computed null value at index 1.");
-    assertFalse(map.containsKey(this.key(1)), "Map should no longer contain the value at index 1.");
-    assertEquals(this.value(3), map.compute(this.key(3), (key, value) -> this.value(3)), "Map should return the value at index 3, when computing the key at index 3.");
+    final {{ K }}2ObjectMap<V> map = this.createMap();
+    assertEquals(this.value(0), map.compute(this.key(0), (ignoredKey, ignoredValue) -> this.value(0)), "Map should return the computed value at index 0.");
+    for(int i = 0; i < 10; i++) {
+      assertEquals(this.value(0), map.get(this.key(0)), "Map should return the value at index 0 when no mutation of the key at index 0 should have occurred.");
+    }
+    assertEquals(this.value(2), map.compute(this.key(0), (ignoredKey, ignoredValue) -> this.value(2)), "Map should return the value at index 0, when attempting to compute the key at index 0.");
+    assertEquals(this.value(2), map.get(this.key(0)), "Map should return the value at index 0 when mutation of the key at index 0 should have occurred.");
+    assertNull(map.compute(this.key(0), (ignoredKey, ignoredValue) -> null), "Map should return null when mutation  of the key at index 0 should have occurred.");
+    assertNull(map.get(this.key(0)), "Map should return null for key at index 0.");
   }
 
   // Put If Absent
@@ -454,17 +423,17 @@ public abstract class {{ K }}2ObjectAbstractMapTest<V> {
 
   // Value Collection
 
-  @Test
-  public void testValues() {
-    final {{ K }}2ObjectMap<V> map = this.populate(this.createMap(), 5);
-    final Collection<V> values = map.values();
-    assertEquals(5, values.size(), "Collection size should be 5.");
-    assertFalse(values.isEmpty());
-    assertTrue(values.contains(this.value(0)));
-    assertFalse(values.contains(this.value(5)));
-    assertTrue(values.remove(this.value(0)));
-    assertFalse(values.remove(this.value(5)));
-    assertFalse(values.contains(this.value(0)));
-    assertEquals(4, values.size());
-  }
+//  @Test
+//  public void testValues() {
+//    final {{ K }}2ObjectMap<V> map = this.populate(this.createMap(), 5);
+//    final Collection<V> values = map.values();
+//    assertEquals(5, values.size(), "Collection size should be 5.");
+//    assertFalse(values.isEmpty());
+//    assertTrue(values.contains(this.value(0)));
+//    assertFalse(values.contains(this.value(5)));
+//    assertTrue(values.remove(this.value(0)));
+//    assertFalse(values.remove(this.value(5)));
+//    assertFalse(values.contains(this.value(0)));
+//    assertEquals(4, values.size());
+//  }
 }

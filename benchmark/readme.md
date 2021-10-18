@@ -31,10 +31,10 @@ Calls `get(Object)` on the `Map` for 1 million existing entries over 5 seconds.
 
 Local (Windows):
 ```
-Benchmark                                                     Mode  Cnt    Score   Error  Units
-LowConcurrentGenericMapRetrievalTest.concurrentHashMap       thrpt    5  134.140 ± 4.719  ops/s
-LowConcurrentGenericMapRetrievalTest.syncMap                 thrpt    5   97.661 ± 3.171  ops/s
-LowConcurrentGenericMapRetrievalTest.synchronizedMap         thrpt    5   14.866 ± 0.548  ops/s
+Benchmark                                                     Mode  Cnt    Score    Error  Units
+LowConcurrentGenericMapRetrievalTest.concurrentHashMap       thrpt    5  192.221 ± 22.653  ops/s
+LowConcurrentGenericMapRetrievalTest.syncMap                 thrpt    5  143.976 ± 14.221  ops/s
+LowConcurrentGenericMapRetrievalTest.synchronizedMap         thrpt    5   21.771 ±  1.560  ops/s
 ```
 
 #### Read Fastutil
@@ -44,8 +44,8 @@ Calls `get(int)` on the `Map` for 1 million existing entries over 5 seconds.
 Local (Windows):
 ```
 Benchmark                                                     Mode  Cnt    Score   Error  Units
-LowConcurrentPrimitiveMapRetrievalTest.syncMap               thrpt    5   34.333 ± 3.637  ops/s
-LowConcurrentPrimitiveMapRetrievalTest.synchronizedMap       thrpt    5   11.204 ± 0.474  ops/s
+LowConcurrentPrimitiveMapRetrievalTest.syncMap               thrpt    5   72.706 ± 3.629  ops/s
+LowConcurrentPrimitiveMapRetrievalTest.synchronizedMap       thrpt    5   14.236 ± 6.368  ops/s
 ```
 
 #### Write Generic
@@ -56,9 +56,9 @@ entries over 5 seconds.
 Local (Windows):
 ```
 Benchmark                                                     Mode  Cnt    Score   Error  Units
-LowConcurrentGenericMapMutationTest.syncMap                  thrpt    5   27.908 ± 1.319  ops/s
-LowConcurrentGenericMapMutationTest.synchronizedMap          thrpt    5   18.397 ± 1.283  ops/s
-LowConcurrentGenericMapMutationTest.concurrentMap            thrpt    5   15.890 ± 0.731  ops/s
+LowConcurrentGenericMapMutationTest.syncMap                  thrpt    5   25.310 ± 0.254  ops/s
+LowConcurrentGenericMapMutationTest.synchronizedMap          thrpt    5   20.891 ± 0.223  ops/s
+LowConcurrentGenericMapMutationTest.concurrentMap            thrpt    5   14.718 ± 0.999  ops/s
 ```
 
 #### Write Fastutil
@@ -69,8 +69,8 @@ entries over 5 seconds.
 Local (Windows):
 ```
 Benchmark                                                     Mode  Cnt    Score   Error  Units
-LowConcurrentPrimitiveMapMutationTest.syncMap                thrpt    5   30.072 ± 1.662  ops/s
-LowConcurrentPrimitiveMapMutationTest.synchronizedMap        thrpt    5   21.483 ± 1.007  ops/s
+LowConcurrentPrimitiveMapMutationTest.syncMap                thrpt    5   25.852 ± 0.392  ops/s
+LowConcurrentPrimitiveMapMutationTest.synchronizedMap        thrpt    5   21.898 ± 0.719  ops/s
 ```
 
 ### High Contention
@@ -85,25 +85,9 @@ Calls `get(Object)` on the `Map` for 1 million existing entries over 5 seconds.
 Local (Windows):
 ```
 Benchmark                                                     Mode  Cnt    Score   Error  Units
-HighConcurrentGenericMapRetrievalTest.concurrentHashMap      thrpt    5  168.732 ± 4.789  ops/s
-HighConcurrentGenericMapRetrievalTest.syncMap                thrpt    5  146.762 ± 4.258  ops/s
-HighConcurrentGenericMapRetrievalTest.synchronizedMap        thrpt    5   13.434 ± 0.142  ops/s
-```
-
-Github Actions (Windows):
-```
-Benchmark                                                     Mode  Cnt    Score     Error  Units
-HighConcurrentGenericMapRetrievalTest.concurrentHashMap      thrpt    5  438.827 ± 797.399  ops/s
-HighConcurrentGenericMapRetrievalTest.syncMap                thrpt    5  326.290 ± 468.934  ops/s
-HighConcurrentGenericMapRetrievalTest.synchronizedMap        thrpt    5    8.666 ±   0.701  ops/s
-```
-
-Github Actions (Ubuntu):
-```
-Benchmark                                                     Mode  Cnt    Score   Error  Units
-HighConcurrentGenericMapRetrievalTest.concurrentHashMap      thrpt    5   93.518 ± 6.912  ops/s
-HighConcurrentGenericMapRetrievalTest.syncMap                thrpt    5   53.486 ± 2.614  ops/s
-HighConcurrentGenericMapRetrievalTest.synchronizedMap        thrpt    5   17.259 ± 1.975  ops/s
+HighConcurrentGenericMapRetrievalTest.concurrentHashMap      thrpt    5  182.701 ± 7.399  ops/s
+HighConcurrentGenericMapRetrievalTest.syncMap                thrpt    5  151.760 ± 4.356  ops/s
+HighConcurrentGenericMapRetrievalTest.synchronizedMap        thrpt    5   22.462 ± 0.542  ops/s
 ```
 
 #### Read Fastutil
@@ -113,22 +97,8 @@ Calls `get(int)` on the `Map` for 1 million existing entries over 5 seconds.
 Local (Windows):
 ```
 Benchmark                                                     Mode  Cnt    Score   Error  Units
-HighConcurrentPrimitiveMapRetrievalTest.syncMap              thrpt    5   60.768 ± 1.589  ops/s
-HighConcurrentPrimitiveMapRetrievalTest.synchronizedMap      thrpt    5   12.924 ± 0.381  ops/s
-```
-
-Github Actions (Windows):
-```
-Benchmark                                                     Mode  Cnt    Score   Error  Units
-HighConcurrentPrimitiveMapRetrievalTest.syncMap              thrpt    5   28.735 ± 1.782  ops/s
-HighConcurrentPrimitiveMapRetrievalTest.synchronizedMap      thrpt    5    8.914 ± 0.755  ops/s
-```
-
-Github Actions (Ubuntu):
-```
-Benchmark                                                     Mode  Cnt    Score   Error  Units
-HighConcurrentPrimitiveMapRetrievalTest.syncMap              thrpt    5   34.379 ± 4.455  ops/s
-HighConcurrentPrimitiveMapRetrievalTest.synchronizedMap      thrpt    5   12.095 ± 4.484  ops/s
+HighConcurrentPrimitiveMapRetrievalTest.syncMap              thrpt    5   55.386 ± 3.189  ops/s
+HighConcurrentPrimitiveMapRetrievalTest.synchronizedMap      thrpt    5   11.822 ± 0.774  ops/s
 ```
 
 #### Write Generic
@@ -139,25 +109,9 @@ entries over 5 seconds.
 Local (Windows):
 ```
 Benchmark                                                     Mode  Cnt    Score   Error  Units
-HighConcurrentGenericMapMutationTest.syncMap                 thrpt    5   25.057 ± 0.396  ops/s
-HighConcurrentGenericMapMutationTest.synchronizedMap         thrpt    5   16.557 ± 0.101  ops/s
-HighConcurrentGenericMapMutationTest.concurrentMap           thrpt    5   11.679 ± 0.911  ops/s
-```
-
-Github Actions (Windows):
-```
-Benchmark                                                     Mode  Cnt    Score   Error  Units
-HighConcurrentGenericMapMutationTest.syncMap                 thrpt    5   16.171 ± 0.737  ops/s
-HighConcurrentGenericMapMutationTest.synchronizedMap         thrpt    5    7.946 ± 0.619  ops/s
-HighConcurrentGenericMapMutationTest.concurrentMap           thrpt    5    6.825 ± 0.580  ops/s
-```
-
-Github Actions (Ubuntu):
-```
-Benchmark                                                     Mode  Cnt    Score   Error  Units
-HighConcurrentGenericMapMutationTest.synchronizedMap         thrpt    5   20.258 ± 2.271  ops/s
-HighConcurrentGenericMapMutationTest.syncMap                 thrpt    5   18.213 ± 1.442  ops/s
-HighConcurrentGenericMapMutationTest.concurrentMap           thrpt    5    8.199 ± 0.423  ops/s
+HighConcurrentGenericMapMutationTest.syncMap                 thrpt    5   25.168 ± 0.423  ops/s
+HighConcurrentGenericMapMutationTest.synchronizedMap         thrpt    5   20.955 ± 0.213  ops/s
+HighConcurrentGenericMapMutationTest.concurrentMap           thrpt    5   10.835 ± 1.047  ops/s
 ```
 
 #### Write Fastutil
@@ -168,22 +122,8 @@ entries over 5 seconds.
 Local (Windows):
 ```
 Benchmark                                                     Mode  Cnt    Score   Error  Units
-HighConcurrentPrimitiveMapMutationTest.syncMap               thrpt    5   26.921 ± 0.301  ops/s
-HighConcurrentPrimitiveMapMutationTest.synchronizedMap       thrpt    5   18.763 ± 0.274  ops/s
-```
-
-Github Actions (Windows):
-```
-Benchmark                                                     Mode  Cnt    Score   Error  Units
-HighConcurrentPrimitiveMapMutationTest.syncMap               thrpt    5   19.121 ± 1.429  ops/s
-HighConcurrentPrimitiveMapMutationTest.synchronizedMap       thrpt    5    7.736 ± 1.889  ops/s
-```
-
-Github Actions (Ubuntu):
-```
-Benchmark                                                     Mode  Cnt    Score   Error  Units
-HighConcurrentPrimitiveMapMutationTest.syncMap               thrpt    5   18.635 ± 2.093  ops/s
-HighConcurrentPrimitiveMapMutationTest.synchronizedMap       thrpt    5   10.867 ± 3.541  ops/s
+HighConcurrentPrimitiveMapMutationTest.syncMap               thrpt    5   26.150 ± 0.697  ops/s
+HighConcurrentPrimitiveMapMutationTest.synchronizedMap       thrpt    5   23.395 ± 0.094  ops/s
 ```
 
 ### No Contention
@@ -197,25 +137,9 @@ Calls `get(Object)` on the `Map` for 1 million existing entries over 5 seconds.
 Local (Windows):
 ```
 Benchmark                                                 Mode  Cnt    Score   Error  Units
-GenericMapRetrievalTest.concurrentHashMap                thrpt    5   78.350 ± 0.255  ops/s
-GenericMapRetrievalTest.syncMap                          thrpt    5   70.225 ± 4.828  ops/s
-GenericMapRetrievalTest.synchronizedMap                  thrpt    5   48.884 ± 0.329  ops/s
-```
-
-Github Actions (Windows):
-```
-Benchmark                                                 Mode  Cnt    Score   Error  Units
-GenericMapRetrievalTest.concurrentHashMap                thrpt    5   40.626 ± 0.894  ops/s
-GenericMapRetrievalTest.syncMap                          thrpt    5   24.101 ± 0.545  ops/s
-GenericMapRetrievalTest.synchronizedMap                  thrpt    5   23.646 ± 0.703  ops/s
-```
-
-Github Actions (Ubuntu):
-```
-Benchmark                                                 Mode  Cnt    Score   Error  Units
-GenericMapRetrievalTest.concurrentHashMap                thrpt    5   48.847 ± 1.552  ops/s
-GenericMapRetrievalTest.synchronizedMap                  thrpt    5   28.675 ± 0.313  ops/s
-GenericMapRetrievalTest.syncMap                          thrpt    5   28.052 ± 0.714  ops/s
+GenericMapRetrievalTest.concurrentHashMap                thrpt    5   71.008 ± 0.400  ops/s
+GenericMapRetrievalTest.syncMap                          thrpt    5   62.768 ± 3.394  ops/s
+GenericMapRetrievalTest.synchronizedMap                  thrpt    5   40.977 ± 0.184  ops/s
 ```
 
 #### Read Fastutil
@@ -225,22 +149,8 @@ Calls `get(int)` on the `Map` for 1 million existing entries over 5 seconds.
 Local (Windows):
 ```
 Benchmark                                                 Mode  Cnt    Score   Error  Units
-PrimitiveMapRetrievalTest.synchronizedMap                thrpt    5   33.011 ± 0.145  ops/s
-PrimitiveMapRetrievalTest.syncMap                        thrpt    5   20.566 ± 0.075  ops/s
-```
-
-Github Actions (Windows):
-```
-Benchmark                                                 Mode  Cnt    Score   Error  Units
-PrimitiveMapRetrievalTest.synchronizedMap                thrpt    5   32.780 ± 3.096  ops/s
-PrimitiveMapRetrievalTest.syncMap                        thrpt    5   13.637 ± 0.285  ops/s
-```
-
-Github Actions (Ubuntu):
-```
-Benchmark                                                 Mode  Cnt    Score   Error  Units
-PrimitiveMapRetrievalTest.synchronizedMap                thrpt    5   41.454 ± 5.031  ops/s
-PrimitiveMapRetrievalTest.syncMap                        thrpt    5   16.472 ± 1.137  ops/s
+PrimitiveMapRetrievalTest.synchronizedMap                thrpt    5   24.490 ± 0.422  ops/s
+PrimitiveMapRetrievalTest.syncMap                        thrpt    5   22.490 ± 0.079  ops/s
 ```
 
 #### Write Generic
@@ -251,25 +161,9 @@ entries over 5 seconds.
 Local (Windows):
 ```
 Benchmark                                                 Mode  Cnt    Score   Error  Units
-GenericMapMutationTest.synchronizedMap                   thrpt    5   54.033 ± 0.256  ops/s
-GenericMapMutationTest.syncMap                           thrpt    5   48.341 ± 0.204  ops/s
-GenericMapMutationTest.concurrentMap                     thrpt    5   41.216 ± 0.212  ops/s
-```
-
-Github Actions (Windows):
-```
-Benchmark                                                 Mode  Cnt    Score   Error  Units
-GenericMapMutationTest.synchronizedMap                   thrpt    5   31.229 ± 1.913  ops/s
-GenericMapMutationTest.syncMap                           thrpt    5   28.220 ± 0.838  ops/s
-GenericMapMutationTest.concurrentMap                     thrpt    5   23.265 ± 1.068  ops/s
-```
-
-Github Actions (Ubuntu):
-```
-Benchmark                                                 Mode  Cnt    Score   Error  Units
-GenericMapMutationTest.synchronizedMap                   thrpt    5   35.632 ± 1.591  ops/s
-GenericMapMutationTest.syncMap                           thrpt    5   30.027 ± 1.599  ops/s
-GenericMapMutationTest.concurrentMap                     thrpt    5   26.723 ± 0.667  ops/s
+GenericMapMutationTest.syncMap                           thrpt    5   58.756 ± 0.412  ops/s
+GenericMapMutationTest.concurrentMap                     thrpt    5   41.252 ± 2.493  ops/s
+GenericMapMutationTest.synchronizedMap                   thrpt    5   39.873 ± 0.178  ops/s
 ```
 
 #### Write Fastutil
@@ -280,20 +174,6 @@ entries over 5 seconds.
 Local (Windows):
 ```
 Benchmark                                                 Mode  Cnt    Score   Error  Units
-PrimitiveMapMutationTest.synchronizedMap                 thrpt    5   78.835 ± 0.807  ops/s
-PrimitiveMapMutationTest.syncMap                         thrpt    5   69.582 ± 0.748  ops/s
-```
-
-Github Actions (Windows):
-```
-Benchmark                                                 Mode  Cnt    Score   Error  Units
-PrimitiveMapMutationTest.synchronizedMap                 thrpt    5   48.413 ± 1.180  ops/s
-PrimitiveMapMutationTest.syncMap                         thrpt    5   43.728 ± 0.782  ops/s
-```
-
-Github Actions (Ubuntu):
-```
-Benchmark                                                 Mode  Cnt    Score   Error  Units
-PrimitiveMapMutationTest.synchronizedMap                 thrpt    5   49.049 ± 3.541  ops/s
-PrimitiveMapMutationTest.syncMap                         thrpt    5   47.010 ± 1.310  ops/s
+PrimitiveMapMutationTest.syncMap                         thrpt    5   68.505 ± 0.460  ops/s
+PrimitiveMapMutationTest.synchronizedMap                 thrpt    5   43.895 ± 0.153  ops/s
 ```

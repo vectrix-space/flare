@@ -24,12 +24,6 @@
  */
 package space.vectrix.flare;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import com.google.common.collect.Lists;
 import net.jodah.concurrentunit.Waiter;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -42,6 +36,12 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class SyncMapTest extends AbstractMapTest<String, String> {
   @Override
@@ -116,6 +116,71 @@ public class SyncMapTest extends AbstractMapTest<String, String> {
     }
     assertEquals(this.value(0), map.putIfAbsent(this.key(0), this.value(2)), "Map should return the value at index 0, when attempting to put the key at index 0.");
     assertEquals(this.value(0), map.get(this.key(0)), "Map should return the value at index 0 when no mutation of the key at index 0 should have occurred.");
+  }
+
+  // Compute If Absent
+
+  @Test
+  @SuppressWarnings("ConstantConditions")
+  public void testComputeIfAbsentNullFunction() {
+    final Map<String, String> map = this.createMap();
+    assertThrows(NullPointerException.class, () -> map.computeIfAbsent(this.key(0), null));
+  }
+
+  @Test
+  public void testComputeIfAbsent() {
+    final Map<String, String> map = this.createMap();
+    assertEquals(this.value(0), map.computeIfAbsent(this.key(0), ignored -> this.value(0)), "Map should return the computed value at index 0.");
+    for(int i = 0; i < 10; i++) {
+      assertEquals(this.value(0), map.get(this.key(0)), "Map should return the value at index 0 when no mutation of the key at index 0 should have occurred.");
+    }
+    assertEquals(this.value(0), map.computeIfAbsent(this.key(0), ignored -> this.value(2)), "Map should return the value at index 0, when attempting to computeIfAbsent the key at index 0.");
+    assertEquals(this.value(0), map.get(this.key(0)), "Map should return the value at index 0 when no mutation of the key at index 0 should have occurred.");
+  }
+
+  // Compute If Present
+
+  @Test
+  @SuppressWarnings("ConstantConditions")
+  public void testComputeIfPresentNullFunction() {
+    final Map<String, String> map = this.createMap();
+    assertThrows(NullPointerException.class, () -> map.computeIfPresent(this.key(0), null));
+  }
+
+  @Test
+  public void testComputeIfPresent() {
+    final Map<String, String> map = this.createMap();
+    assertNull(map.computeIfPresent(this.key(0), (ignoredKey, ignoredValue) -> this.value(0)), "Map should return the null value at index 0.");
+    map.put(this.key(0), this.value(0));
+    for(int i = 0; i < 10; i++) {
+      assertEquals(this.value(0), map.get(this.key(0)), "Map should return the value at index 0 when no mutation of the key at index 0 should have occurred.");
+    }
+    assertEquals(this.value(2), map.computeIfPresent(this.key(0), (ignoredKey, ignoredValue) -> this.value(2)), "Map should return the value at index 2, when attempting to computeIfPresent the key at index 0.");
+    assertEquals(this.value(2), map.get(this.key(0)), "Map should return the value at index 2 when mutation of the key at index 0 should have occurred.");
+    assertNull(map.computeIfPresent(this.key(0), (ignoredKey, ignoredValue) -> null), "Map should return null when mutation  of the key at index 0 should have occurred.");
+    assertNull(map.get(this.key(0)), "Map should return null for key at index 0.");
+  }
+
+  // Compute
+
+  @Test
+  @SuppressWarnings("ConstantConditions")
+  public void testComputeNullFunction() {
+    final Map<String, String> map = this.createMap();
+    assertThrows(NullPointerException.class, () -> map.compute(this.key(0), null));
+  }
+
+  @Test
+  public void testCompute() {
+    final Map<String, String> map = this.createMap();
+    assertEquals(this.value(0), map.compute(this.key(0), (ignoredKey, ignoredValue) -> this.value(0)), "Map should return the computed value at index 0.");
+    for(int i = 0; i < 10; i++) {
+      assertEquals(this.value(0), map.get(this.key(0)), "Map should return the value at index 0 when no mutation of the key at index 0 should have occurred.");
+    }
+    assertEquals(this.value(2), map.compute(this.key(0), (ignoredKey, ignoredValue) -> this.value(2)), "Map should return the value at index 0, when attempting to computeIfAbsent the key at index 0.");
+    assertEquals(this.value(2), map.get(this.key(0)), "Map should return the value at index 0 when mutation of the key at index 0 should have occurred.");
+    assertNull(map.compute(this.key(0), (ignoredKey, ignoredValue) -> null), "Map should return null when mutation  of the key at index 0 should have occurred.");
+    assertNull(map.get(this.key(0)), "Map should return null for key at index 0.");
   }
 
   // Replace

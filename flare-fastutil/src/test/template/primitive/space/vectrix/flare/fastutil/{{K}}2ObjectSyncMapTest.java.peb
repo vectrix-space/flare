@@ -1,11 +1,5 @@
 package space.vectrix.flare;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import com.google.common.collect.Lists;
 import it.unimi.dsi.fastutil.{{ G }}.{{ K }}Set;
 import it.unimi.dsi.fastutil.{{ G }}.{{ K }}2ObjectMap;
@@ -15,13 +9,18 @@ import org.junit.jupiter.api.Test;
 import space.vectrix.flare.fastutil.{{ K }}2ObjectSyncMap;
 import space.vectrix.test.TestHelper;
 
-import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class {{ K }}2ObjectSyncMapTest extends {{ K }}2ObjectAbstractMapTest<String> {
   @Override
@@ -90,6 +89,30 @@ public class {{ K }}2ObjectSyncMapTest extends {{ K }}2ObjectAbstractMapTest<Str
     }
     assertEquals(this.value(0), map.putIfAbsent(this.key(0), this.value(2)), "Map should return the value at index 0, when attempting to put the key at index 0.");
     assertEquals(this.value(0), map.get(this.key(0)), "Map should return the value at index 0 when no mutation of the key at index 0 should have occurred.");
+  }
+
+  // Compute If Absent
+
+  @Test
+  public void testComputeIfAbsentNullFunction() {
+    final {{ K }}2ObjectMap<String> map = this.createMap();
+    assertThrows(NullPointerException.class, () -> map.computeIfAbsent(this.key(0), null));
+  }
+
+  // Compute If Present
+
+  @Test
+  public void testComputeIfPresentNullFunction() {
+    final {{ K }}2ObjectMap<String> map = this.createMap();
+    assertThrows(NullPointerException.class, () -> map.computeIfPresent(this.key(0), null));
+  }
+
+  // Compute
+
+  @Test
+  public void testComputeNullFunction() {
+    final {{ K }}2ObjectMap<String> map = this.createMap();
+    assertThrows(NullPointerException.class, () -> map.compute(this.key(0), null));
   }
 
   // Replace

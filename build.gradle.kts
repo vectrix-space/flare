@@ -3,5 +3,5 @@ plugins {
 }
 
 group = "space.vectrix.flare"
-version = "2.0.0"
+version = "2.0.1-SNAPSHOT"
 description = "Useful thread-safe collections with performance in mind."

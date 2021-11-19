@@ -44,7 +44,7 @@ tasks {
 
   withType<Sign>().configureEach {
     onlyIf {
-      System.getenv("CI") == null
+      project.hasProperty("signingEnabled")
     }
   }
 }

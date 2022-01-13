@@ -143,32 +143,34 @@ import static java.util.Objects.requireNonNull;
     requireNonNull(mappingFunction, "mappingFunction");
     ExpungingEntry<V> entry = this.read.get(key);
     InsertionResult<V> result = entry != null ? entry.computeIfAbsent(key, mappingFunction) : null;
-    if(result == null || result.operation() == InsertionResultImpl.EXPUNGED) {
-      synchronized(this.lock) {
-        if((entry = this.read.get(key)) != null) {
-          // If the entry was expunged, unexpunge, add the entry
-          // back to the dirty map.
-          if(entry.tryUnexpungeAndCompute(key, mappingFunction)) {
-            if(entry.exists()) this.dirty.put(key, entry);
-            return entry.get();
-          } else {
-            result = entry.computeIfAbsent(key, mappingFunction);
-          }
-        } else if(this.dirty != null && (entry = this.dirty.get(key)) != null) {
-          result = entry.computeIfAbsent(key, mappingFunction);
-          if(result.current() == null) this.dirty.remove(key);
-          this.missLocked();
+    if(result != null && result.operation() == InsertionResultImpl.UPDATED) return result.current();
+    synchronized(this.lock) {
+      if((entry = this.read.get(key)) != null) {
+        // If the entry was expunged, unexpunge, add the entry
+        // back to the dirty map.
+        if(entry.tryUnexpungeAndCompute(key, mappingFunction)) {
+          if(entry.exists()) this.dirty.put(key, entry);
+          return entry.get();
         } else {
-          // Adds the first new key to the dirty map and marks it as
-          // amended.
-          if(!this.amended) {
-            this.dirtyLocked();
-            this.amended = true;
-          }
-          final V computed = mappingFunction.apply(key);
-          if(computed != null) this.dirty.put(key, new ExpungingEntryImpl<>(computed));
-          return computed;
+          result = entry.computeIfAbsent(key, mappingFunction);
         }
+      } else if(this.dirty != null && (entry = this.dirty.get(key)) != null) {
+        result = entry.computeIfAbsent(key, mappingFunction);
+        if(result.current() == null) this.dirty.remove(key);
+        // The slow path should be avoided, even if the value does
+        // not match or is present. So we mark a miss, to eventually
+        // promote and take a faster path.
+        this.missLocked();
+      } else {
+        // Adds the first new key to the dirty map and marks it as
+        // amended.
+        if(!this.amended) {
+          this.dirtyLocked();
+          this.amended = true;
+        }
+        final V computed = mappingFunction.apply(key);
+        if(computed != null) this.dirty.put(key, new ExpungingEntryImpl<>(computed));
+        return computed;
       }
     }
     return result.current();
@@ -179,18 +181,17 @@ import static java.util.Objects.requireNonNull;
     requireNonNull(remappingFunction, "remappingFunction");
     ExpungingEntry<V> entry = this.read.get(key);
     InsertionResult<V> result = entry != null ? entry.computeIfPresent(key, remappingFunction) : null;
-    if(result == null || result.operation() == InsertionResultImpl.EXPUNGED) {
-      synchronized(this.lock) {
-        if((entry = this.read.get(key)) != null) {
-          result = entry.computeIfPresent(key, remappingFunction);
-        } else if(this.dirty != null && (entry = this.dirty.get(key)) != null) {
-          result = entry.computeIfPresent(key, remappingFunction);
-          if(result.current() == null) this.dirty.remove(key);
-          // The slow path should be avoided, even if the value does
-          // not match or is present. So we mark a miss, to eventually
-          // promote and take a faster path.
-          this.missLocked();
-        }
+    if(result != null && result.operation() == InsertionResultImpl.UPDATED) return result.current();
+    synchronized(this.lock) {
+      if((entry = this.read.get(key)) != null) {
+        result = entry.computeIfPresent(key, remappingFunction);
+      } else if(this.dirty != null && (entry = this.dirty.get(key)) != null) {
+        result = entry.computeIfPresent(key, remappingFunction);
+        if(result.current() == null) this.dirty.remove(key);
+        // The slow path should be avoided, even if the value does
+        // not match or is present. So we mark a miss, to eventually
+        // promote and take a faster path.
+        this.missLocked();
       }
     }
     return result != null ? result.current() : null;
@@ -201,32 +202,34 @@ import static java.util.Objects.requireNonNull;
     requireNonNull(remappingFunction, "remappingFunction");
     ExpungingEntry<V> entry = this.read.get(key);
     InsertionResult<V> result = entry != null ? entry.compute(key, remappingFunction) : null;
-    if(result == null || result.operation() == InsertionResultImpl.EXPUNGED) {
-      synchronized(this.lock) {
-        if((entry = this.read.get(key)) != null) {
-          // If the entry was expunged, unexpunge, add the entry
-          // back to the dirty map if the value is not null.
-          if(entry.tryUnexpungeAndCompute(key, remappingFunction)) {
-            if(entry.exists()) this.dirty.put(key, entry);
-            return entry.get();
-          } else {
-            result = entry.compute(key, remappingFunction);
-          }
-        } else if(this.dirty != null && (entry = this.dirty.get(key)) != null) {
-          result = entry.compute(key, remappingFunction);
-          if(result.current() == null) this.dirty.remove(key);
-          this.missLocked();
+    if(result != null && result.operation() == InsertionResultImpl.UPDATED) return result.current();
+    synchronized(this.lock) {
+      if((entry = this.read.get(key)) != null) {
+        // If the entry was expunged, unexpunge, add the entry
+        // back to the dirty map if the value is not null.
+        if(entry.tryUnexpungeAndCompute(key, remappingFunction)) {
+          if(entry.exists()) this.dirty.put(key, entry);
+          return entry.get();
         } else {
-          // Adds the first new key to the dirty map and marks it as
-          // amended.
-          if(!this.amended) {
-            this.dirtyLocked();
-            this.amended = true;
-          }
-          final V computed = remappingFunction.apply(key, null);
-          if(computed != null) this.dirty.put(key, new ExpungingEntryImpl<>(computed));
-          return computed;
+          result = entry.compute(key, remappingFunction);
         }
+      } else if(this.dirty != null && (entry = this.dirty.get(key)) != null) {
+        result = entry.compute(key, remappingFunction);
+        if(result.current() == null) this.dirty.remove(key);
+        // The slow path should be avoided, even if the value does
+        // not match or is present. So we mark a miss, to eventually
+        // promote and take a faster path.
+        this.missLocked();
+      } else {
+        // Adds the first new key to the dirty map and marks it as
+        // amended.
+        if(!this.amended) {
+          this.dirtyLocked();
+          this.amended = true;
+        }
+        final V computed = remappingFunction.apply(key, null);
+        if(computed != null) this.dirty.put(key, new ExpungingEntryImpl<>(computed));
+        return computed;
       }
     }
     return result.current();
@@ -238,29 +241,33 @@ import static java.util.Objects.requireNonNull;
     requireNonNull(value, "value");
     ExpungingEntry<V> entry = this.read.get(key);
     InsertionResult<V> result = entry != null ? entry.setIfAbsent(value) : null;
-    if(result == null || result.operation() == InsertionResultImpl.EXPUNGED) {
-      synchronized(this.lock) {
-        if((entry = this.read.get(key)) != null) {
-          // If the entry was expunged, unexpunge, add the entry
-          // back to the dirty map and return null, as we know there
-          // was no previous value.
-          if(entry.tryUnexpungeAndSet(value)) {
-            this.dirty.put(key, entry);
-          } else {
-            result = entry.setIfAbsent(value);
-          }
-        } else if(this.dirty != null && (entry = this.dirty.get(key)) != null) {
-          result = entry.setIfAbsent(value);
-          this.missLocked();
+    if(result != null && result.operation() == InsertionResultImpl.UPDATED) return result.previous();
+    synchronized(this.lock) {
+      if((entry = this.read.get(key)) != null) {
+        // If the entry was expunged, unexpunge, add the entry
+        // back to the dirty map and return null, as we know there
+        // was no previous value.
+        if(entry.tryUnexpungeAndSet(value)) {
+          this.dirty.put(key, entry);
+          return null;
         } else {
-          // Adds the first new key to the dirty map and marks it as
-          // amended.
-          if(!this.amended) {
-            this.dirtyLocked();
-            this.amended = true;
-          }
-          this.dirty.put(key, new ExpungingEntryImpl<>(value));
+          result = entry.setIfAbsent(value);
         }
+      } else if(this.dirty != null && (entry = this.dirty.get(key)) != null) {
+        result = entry.setIfAbsent(value);
+        // The slow path should be avoided, even if the value does
+        // not match or is present. So we mark a miss, to eventually
+        // promote and take a faster path.
+        this.missLocked();
+      } else {
+        // Adds the first new key to the dirty map and marks it as
+        // amended.
+        if(!this.amended) {
+          this.dirtyLocked();
+          this.amended = true;
+        }
+        this.dirty.put(key, new ExpungingEntryImpl<>(value));
+        return null;
       }
     }
     return result != null ? result.previous() : null;
@@ -286,7 +293,6 @@ import static java.util.Objects.requireNonNull;
       } else if(this.dirty != null && (entry = this.dirty.get(key)) != null) {
         previous = entry.get();
         entry.set(value);
-        this.missLocked();
       } else {
         // Adds the first new key to the dirty map and marks it as
         // amended.
@@ -505,7 +511,7 @@ import static java.util.Objects.requireNonNull;
         final Object previous = this.value;
         if(previous == ExpungingEntryImpl.EXPUNGED) return new InsertionResultImpl<>(InsertionResultImpl.EXPUNGED, null, null);
         if(ExpungingEntryImpl.UPDATER.compareAndSet(this, previous, next != null ? next : (next = remappingFunction.apply(key, (V) previous)))) {
-          return new InsertionResultImpl<>(previous != next ? InsertionResultImpl.UPDATED : InsertionResultImpl.UNCHANGED, (V) previous, next);
+          return new InsertionResultImpl<>(InsertionResultImpl.UPDATED, (V) previous, next);
         }
       }
     }

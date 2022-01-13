@@ -562,7 +562,7 @@ import static java.util.Objects.requireNonNull;
       while(this.value == null) {
         if(ExpungingEntryImpl.UPDATER.compareAndSet(this, null, ExpungingEntryImpl.EXPUNGED)) return true;
       }
-      return false;
+      return this.value == ExpungingEntryImpl.EXPUNGED;
     }
 
     @Override

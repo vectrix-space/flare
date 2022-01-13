@@ -162,9 +162,9 @@ import static java.util.Objects.requireNonNull;
         // promote and take a faster path.
         this.missLocked();
       } else {
-        // Adds the first new key to the dirty map and marks it as
-        // amended.
         if(!this.amended) {
+          // Adds the first new key to the dirty map and marks it as
+          // amended.
           this.dirtyLocked();
           this.amended = true;
         }
@@ -221,9 +221,9 @@ import static java.util.Objects.requireNonNull;
         // promote and take a faster path.
         this.missLocked();
       } else {
-        // Adds the first new key to the dirty map and marks it as
-        // amended.
         if(!this.amended) {
+          // Adds the first new key to the dirty map and marks it as
+          // amended.
           this.dirtyLocked();
           this.amended = true;
         }
@@ -260,9 +260,9 @@ import static java.util.Objects.requireNonNull;
         // promote and take a faster path.
         this.missLocked();
       } else {
-        // Adds the first new key to the dirty map and marks it as
-        // amended.
         if(!this.amended) {
+          // Adds the first new key to the dirty map and marks it as
+          // amended.
           this.dirtyLocked();
           this.amended = true;
         }
@@ -270,7 +270,7 @@ import static java.util.Objects.requireNonNull;
         return null;
       }
     }
-    return result != null ? result.previous() : null;
+    return result.previous();
   }
 
   @Override
@@ -294,13 +294,14 @@ import static java.util.Objects.requireNonNull;
         previous = entry.get();
         entry.set(value);
       } else {
-        // Adds the first new key to the dirty map and marks it as
-        // amended.
         if(!this.amended) {
+          // Adds the first new key to the dirty map and marks it as
+          // amended.
           this.dirtyLocked();
           this.amended = true;
         }
         this.dirty.put(key, new ExpungingEntryImpl<>(value));
+        return null;
       }
     }
     return previous;
@@ -414,19 +415,16 @@ import static java.util.Objects.requireNonNull;
     }
   }
 
+  private void missLocked() {
+    if(++this.misses < this.dirty.size()) return;
+    this.promoteLocked();
+  }
+
   private void promoteLocked() {
-    if(this.dirty != null) {
-      this.read = this.dirty;
-    }
+    this.read = this.dirty;
     this.amended = false;
     this.dirty = null;
     this.misses = 0;
-  }
-
-  private void missLocked() {
-    if(++this.misses >= this.dirty.size()) {
-      this.promoteLocked();
-    }
   }
 
   private void dirtyLocked() {

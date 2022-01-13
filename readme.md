@@ -12,6 +12,10 @@ __Note:__ If you do not have [Gradle] installed then use `./gradlew` for Unix sy
 
 In order to build Flare you simply need to run the `gradle build` command. You can find the compiled JAR file in `./flare/build/libs` or `./flare-fastutil/build/libs` labeled 'flare-2.0.0.jar' or 'flare-fastutil-2.0.0.jar'.
 
+## Benchmarks
+
+[SyncMap Benchmarks](https://github.com/vectrix-space/flare/tree/main/benchmark#readme)
+
 ## Dependency
 
 Gradle:

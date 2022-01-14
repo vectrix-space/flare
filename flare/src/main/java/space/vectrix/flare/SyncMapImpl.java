@@ -37,7 +37,6 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 
@@ -640,7 +639,9 @@ import static java.util.Objects.requireNonNull;
     @Override
     public @Nullable V setValue(final @NonNull V value) {
       requireNonNull(value, "value");
-      return SyncMapImpl.this.put(this.key, this.value = value);
+      final V previous = SyncMapImpl.this.put(this.key, value);
+      this.value = value;
+      return previous;
     }
 
     @Override
@@ -678,10 +679,16 @@ import static java.util.Objects.requireNonNull;
     }
 
     @Override
+    public boolean add(final @NonNull Entry<K, V> entry) {
+      requireNonNull(entry, "entry");
+      return SyncMapImpl.this.put(entry.getKey(), entry.getValue()) == null;
+    }
+
+    @Override
     public boolean remove(final @Nullable Object entry) {
       if(!(entry instanceof Map.Entry)) return false;
       final Map.Entry<?, ?> mapEntry = (Entry<?, ?>) entry;
-      return SyncMapImpl.this.remove(mapEntry.getKey()) != null;
+      return SyncMapImpl.this.remove(mapEntry.getKey(), mapEntry.getValue());
     }
 
     @Override
@@ -703,7 +710,7 @@ import static java.util.Objects.requireNonNull;
 
     /* package */ EntryIterator(final @NonNull Iterator<Map.Entry<K, ExpungingEntry<V>>> backingIterator) {
       this.backingIterator = backingIterator;
-      this.next = this.nextValue();
+      this.advance();
     }
 
     @Override
@@ -713,37 +720,30 @@ import static java.util.Objects.requireNonNull;
 
     @Override
     public Map.@NonNull Entry<K, V> next() {
-      if((this.current = this.next) == null) throw new NoSuchElementException();
-      this.next = this.nextValue();
-      return this.current;
-    }
-
-    private Map.@Nullable Entry<K, V> nextValue() {
-      Map.Entry<K, ExpungingEntry<V>> entry;
-      V value;
-      while(this.backingIterator.hasNext()) {
-        if((value = (entry = this.backingIterator.next()).getValue().get()) != null) {
-          return new MapEntry(entry.getKey(), value);
-        }
-      }
-      return null;
+      final Map.Entry<K, V> current;
+      if((current = this.next) == null) throw new NoSuchElementException();
+      this.current = current;
+      this.advance();
+      return current;
     }
 
     @Override
     public void remove() {
-      if(this.current == null) throw new IllegalStateException();
-      SyncMapImpl.this.remove(this.current.getKey());
+      final Map.Entry<K, V> current;
+      if((current = this.current) == null) throw new IllegalStateException();
       this.current = null;
+      SyncMapImpl.this.remove(current.getKey());
     }
 
-    @Override
-    public void forEachRemaining(final @NonNull Consumer<? super Map.Entry<K, V>> action) {
-      requireNonNull(action, "action");
-      if(this.next != null) action.accept(this.next);
-      this.backingIterator.forEachRemaining(entry -> {
-        final V value = entry.getValue().get();
-        if(value != null) action.accept(new MapEntry(entry.getKey(), value));
-      });
+    private void advance() {
+      this.next = null;
+      while(this.backingIterator.hasNext()) {
+        final Map.Entry<K, ExpungingEntry<V>> entry; final V value;
+        if((value = (entry = this.backingIterator.next()).getValue().get()) != null) {
+          this.next = new MapEntry(entry.getKey(), value);
+          return;
+        }
+      }
     }
   }
 }

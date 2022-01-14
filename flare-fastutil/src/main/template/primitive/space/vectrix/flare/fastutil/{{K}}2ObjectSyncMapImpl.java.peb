@@ -17,7 +17,6 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
 import java.util.function.{{ KA }}Function;
 import java.util.function.IntFunction;
 
@@ -695,7 +694,9 @@ import static java.util.Objects.requireNonNull;
     @Override
     public @Nullable V setValue(final @NonNull V value) {
       requireNonNull(value, "value");
-      return {{ K }}2ObjectSyncMapImpl.this.put(this.key, this.value = value);
+      final V previous = {{ K }}2ObjectSyncMapImpl.this.put(this.key, value);
+      this.value = value;
+      return previous;
     }
 
     @Override
@@ -733,10 +734,16 @@ import static java.util.Objects.requireNonNull;
     }
 
     @Override
+    public boolean add(final {{ K }}2ObjectMap.@NonNull Entry<V> entry) {
+      requireNonNull(entry, "entry");
+      return {{ K }}2ObjectSyncMapImpl.this.put(entry.get{{ K }}Key(), entry.getValue()) == null;
+    }
+
+    @Override
     public boolean remove(final @Nullable Object entry) {
       if(!(entry instanceof {{ K }}2ObjectMap.Entry)) return false;
       final {{ K }}2ObjectMap.Entry<?> mapEntry = ({{ K }}2ObjectMap.Entry<?>) entry;
-      return {{ K }}2ObjectSyncMapImpl.this.remove(mapEntry.get{{ K }}Key()) != null;
+      return {{ K }}2ObjectSyncMapImpl.this.remove(mapEntry.get{{ K }}Key(), mapEntry.getValue());
     }
 
     @Override
@@ -758,7 +765,7 @@ import static java.util.Objects.requireNonNull;
 
     /* package */ EntryIterator(final @NonNull Iterator<{{ K }}2ObjectMap.Entry<ExpungingEntry<V>>> backingIterator) {
       this.backingIterator = backingIterator;
-      this.next = this.nextValue();
+      this.advance();
     }
 
     @Override
@@ -768,37 +775,30 @@ import static java.util.Objects.requireNonNull;
 
     @Override
     public {{ K }}2ObjectMap.@NonNull Entry<V> next() {
-      if((this.current = this.next) == null) throw new NoSuchElementException();
-      this.next = this.nextValue();
-      return this.current;
-    }
-
-    private {{ K }}2ObjectMap.@Nullable Entry<V> nextValue() {
-      {{ K }}2ObjectMap.Entry<ExpungingEntry<V>> entry;
-      V value;
-      while(this.backingIterator.hasNext()) {
-        if((value = (entry = this.backingIterator.next()).getValue().get()) != null) {
-          return new MapEntry(entry.get{{ K }}Key(), value);
-        }
-      }
-      return null;
+      final {{ K }}2ObjectMap.@NonNull Entry<V> current;
+      if((current = this.next) == null) throw new NoSuchElementException();
+      this.current = current;
+      this.advance();
+      return current;
     }
 
     @Override
     public void remove() {
-      if(this.current == null) throw new IllegalStateException();
-      {{ K }}2ObjectSyncMapImpl.this.remove(this.current.get{{ K }}Key());
+      final {{ K }}2ObjectMap.@NonNull Entry<V> current;
+      if((current = this.current) == null) throw new IllegalStateException();
       this.current = null;
+      {{ K }}2ObjectSyncMapImpl.this.remove(current.get{{ K }}Key());
     }
 
-    @Override
-    public void forEachRemaining(final @NonNull Consumer<? super {{ K }}2ObjectMap.Entry<V>> action) {
-      requireNonNull(action, "action");
-      if(this.next != null) action.accept(this.next);
-      this.backingIterator.forEachRemaining(entry -> {
-        final V value = entry.getValue().get();
-        if(value != null) action.accept(new MapEntry(entry.get{{ K }}Key(), value));
-      });
+    private void advance() {
+      this.next = null;
+      while(this.backingIterator.hasNext()) {
+        final {{ K }}2ObjectMap.Entry<ExpungingEntry<V>> entry; final V value;
+        if((value = (entry = this.backingIterator.next()).getValue().get()) != null) {
+          this.next = new MapEntry(entry.get{{ K }}Key(), value);
+          return;
+        }
+      }
     }
   }
 }

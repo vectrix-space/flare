@@ -268,17 +268,24 @@ public class SyncMapTest extends AbstractMapTest<String, String> {
   // Entry Set
 
   @Test
-  public void testEntriesAddUnsupported() {
+  public void testEntriesAdd() {
     final Map<String, String> map = this.populate(this.createMap(), 3);
     final Set<Map.Entry<String, String>> keys = map.entrySet();
-    assertThrows(UnsupportedOperationException.class, () -> keys.add(this.entry(0)));
+    assertFalse(keys.add(this.entry(0)), "Map should return false for attempting to store the entry at index 0.");
+    assertTrue(keys.add(this.entry(3)), "Map should return true for storing the entry at index 3.");
+    assertTrue(keys.contains(this.entry(3)), "Map should return true for containing the entry at index 3.");
   }
 
   @Test
-  public void testEntriesAddAllUnsupported() {
-    final Map<String, String> map = this.populate(this.createMap(), 3);
-    final Set<Map.Entry<String, String>> keys = map.entrySet();
-    assertThrows(UnsupportedOperationException.class, () -> keys.addAll(Lists.newArrayList(this.entry(0), this.entry(1))));
+  public void testEntriesAddAll() {
+    final Map<String, String> first = this.populate(this.createMap(), 0);
+    final Map<String, String> other = this.populate(this.createMap(), 5);
+    final Set<Map.Entry<String, String>> keys = first.entrySet();
+    keys.addAll(other.entrySet());
+    for(int i = 0; i < 5; i++) {
+      final String original = String.valueOf(i);
+      assertEquals(original, first.get(original), "Map should return " + original + ".");
+    }
   }
 
   // Key Set

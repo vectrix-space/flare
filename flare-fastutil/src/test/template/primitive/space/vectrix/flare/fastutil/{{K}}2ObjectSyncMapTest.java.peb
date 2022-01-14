@@ -199,17 +199,24 @@ public class {{ K }}2ObjectSyncMapTest extends {{ K }}2ObjectAbstractMapTest<Str
   // Entry Set
 
   @Test
-  public void testEntriesAddUnsupported() {
+  public void testEntriesAdd() {
     final {{ K }}2ObjectMap<String> map = this.populate(this.createMap(), 3);
     final Set<{{ K }}2ObjectMap.Entry<String>> keys = map.{{ k }}2ObjectEntrySet();
-    assertThrows(UnsupportedOperationException.class, () -> keys.add(this.entry(0)));
+    assertFalse(keys.add(this.entry(0)), "Map should return false for attempting to store the entry at index 0.");
+    assertTrue(keys.add(this.entry(3)), "Map should return true for storing the entry at index 3.");
+    assertTrue(keys.contains(this.entry(3)), "Map should return true for containing the entry at index 3.");
   }
 
   @Test
-  public void testEntriesAddAllUnsupported() {
-    final {{ K }}2ObjectMap<String> map = this.populate(this.createMap(), 3);
-    final Set<{{ K }}2ObjectMap.Entry<String>> keys = map.{{ k }}2ObjectEntrySet();
-    assertThrows(UnsupportedOperationException.class, () -> keys.addAll(Lists.newArrayList(this.entry(0), this.entry(1))));
+  public void testEntriesAddAll() {
+    final {{ K }}2ObjectMap<String> first = this.populate(this.createMap(), 0);
+    final {{ K }}2ObjectMap<String> other = this.populate(this.createMap(), 5);
+    final Set<{{ K }}2ObjectMap.Entry<String>> keys = first.{{ k }}2ObjectEntrySet();
+    keys.addAll(other.{{ k }}2ObjectEntrySet());
+    for(int i = 0; i < 5; i++) {
+      final String original = String.valueOf(i);
+      assertEquals(original, first.get(this.key(i)), "Map should return the value at index " + i + ".");
+    }
   }
 
   // Key Set

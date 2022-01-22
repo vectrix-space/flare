@@ -17,8 +17,6 @@ jobs:
           java-version: "11"
       - name: "build"
         run: "./gradlew build"
-      - name: "benchmark"
-        run: "./gradlew jmh"
       - name: "publish"
         if: ${{ runner.os == 'Linux' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         run: "./gradlew publish"

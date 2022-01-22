@@ -415,7 +415,8 @@ import static java.util.Objects.requireNonNull;
   }
 
   private void missLocked() {
-    if(++this.misses < this.dirty.size()) return;
+    this.misses++;
+    if(this.misses < this.dirty.size()) return;
     this.promoteLocked();
   }
 

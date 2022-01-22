@@ -20,160 +20,59 @@ In both cases, this map significantly reduces lock contention compared
 to a traditional map paired with a read and write lock, along with maps
 with an exclusive lock (such as using `Collections#synchronizedMap(Map)`).
 
-### Low Contention
+### Only Dirty (5 threads)
 
-Testing involves being read over multiple threads concurrently. These
-tests involved 4 threads.
+These maps are not populated with values beforehand. `SyncMap` is at a
+disadvantage by taking the slowest path (locking) the most.
 
-#### Read Generic
-
-Calls `get(Object)` on the `Map` for 1 million existing entries over 5 seconds.
-
-Local (Windows):
 ```
-Benchmark                                                     Mode  Cnt    Score    Error  Units
-LowConcurrentGenericMapRetrievalTest.concurrentHashMap       thrpt    5  192.221 ± 22.653  ops/s
-LowConcurrentGenericMapRetrievalTest.syncMap                 thrpt    5  143.976 ± 14.221  ops/s
-LowConcurrentGenericMapRetrievalTest.synchronizedMap         thrpt    5   21.771 ±  1.560  ops/s
-```
+Benchmark                                  (implementation)  (size)   Mode  Cnt    Score   Error  Units
+DirtyGenericMapTest.randomRead            ConcurrentHashMap  100000  thrpt    5  1092.846 ±   7.191  ops/s
+DirtyGenericMapTest.randomRead                      SyncMap  100000  thrpt    5  1063.716 ±  19.922  ops/s
+DirtyGenericMapTest.randomRead              SynchronizedMap  100000  thrpt    5   165.639 ±   8.541  ops/s
 
-#### Read Fastutil
+DirtyGenericMapTest.randomReadAndWrite    ConcurrentHashMap  100000  thrpt    5   205.462 ±   2.751  ops/s
+DirtyGenericMapTest.randomReadAndWrite              SyncMap  100000  thrpt    5   165.743 ±  13.051  ops/s
+DirtyGenericMapTest.randomReadAndWrite      SynchronizedMap  100000  thrpt    5    33.348 ±   3.187  ops/s
 
-Calls `get(int)` on the `Map` for 1 million existing entries over 5 seconds.
+DirtyGenericMapTest.randomWrite           ConcurrentHashMap  100000  thrpt    5   270.430 ±   7.495  ops/s
+DirtyGenericMapTest.randomWrite             SynchronizedMap  100000  thrpt    5    38.131 ±   4.955  ops/s
+DirtyGenericMapTest.randomWrite                     SyncMap  100000  thrpt    5    36.057 ±   9.082  ops/s
 
-Local (Windows):
-```
-Benchmark                                                     Mode  Cnt    Score   Error  Units
-LowConcurrentPrimitiveMapRetrievalTest.syncMap               thrpt    5   72.706 ± 3.629  ops/s
-LowConcurrentPrimitiveMapRetrievalTest.synchronizedMap       thrpt    5   14.236 ± 6.368  ops/s
-```
+DirtyPrimitiveMapTest.randomRead                    SyncMap  100000  thrpt    5  5136.393 ± 436.114  ops/s
+DirtyPrimitiveMapTest.randomRead            SynchronizedMap  100000  thrpt    5   366.007 ±   1.716  ops/s
 
-#### Write Generic
+DirtyPrimitiveMapTest.randomReadAndWrite            SyncMap  100000  thrpt    5   466.924 ±  11.442  ops/s
+DirtyPrimitiveMapTest.randomReadAndWrite    SynchronizedMap  100000  thrpt    5   106.553 ±  12.224  ops/s
 
-Calls `put(Object, Object)` on the `Map` for 1 million non-existent becoming existent
-entries over 5 seconds.
-
-Local (Windows):
-```
-Benchmark                                                     Mode  Cnt    Score   Error  Units
-LowConcurrentGenericMapMutationTest.syncMap                  thrpt    5   25.310 ± 0.254  ops/s
-LowConcurrentGenericMapMutationTest.synchronizedMap          thrpt    5   20.891 ± 0.223  ops/s
-LowConcurrentGenericMapMutationTest.concurrentMap            thrpt    5   14.718 ± 0.999  ops/s
+DirtyPrimitiveMapTest.randomWrite           SynchronizedMap  100000  thrpt    5   137.213 ±  14.199  ops/s
+DirtyPrimitiveMapTest.randomWrite                   SyncMap  100000  thrpt    5    57.604 ±  17.722  ops/s
 ```
 
-#### Write Fastutil
+### Only Read (5 threads)
 
-Calls `put(int, Object)` on the `Map` for 1 million non-existent becoming existent
-entries over 5 seconds.
+These maps are populated with values beforehand. `SyncMap` will be taking
+the fastest path (no locking) the most.
 
-Local (Windows):
 ```
-Benchmark                                                     Mode  Cnt    Score   Error  Units
-LowConcurrentPrimitiveMapMutationTest.syncMap                thrpt    5   25.852 ± 0.392  ops/s
-LowConcurrentPrimitiveMapMutationTest.synchronizedMap        thrpt    5   21.898 ± 0.719  ops/s
-```
+ReadGenericMapTest.randomRead             ConcurrentHashMap  100000  thrpt    5   331.616 ±  10.570  ops/s
+ReadGenericMapTest.randomRead                       SyncMap  100000  thrpt    5   299.768 ±   4.700  ops/s
+ReadGenericMapTest.randomRead               SynchronizedMap  100000  thrpt    5    43.201 ±   2.759  ops/s
 
-### High Contention
+ReadGenericMapTest.randomReadAndWrite     ConcurrentHashMap  100000  thrpt    5   212.580 ±   3.971  ops/s
+ReadGenericMapTest.randomReadAndWrite               SyncMap  100000  thrpt    5   185.712 ±   4.690  ops/s
+ReadGenericMapTest.randomReadAndWrite       SynchronizedMap  100000  thrpt    5    31.178 ±   2.074  ops/s
 
-Testing involves being read over multiple threads concurrently. These
-tests involved 50 threads.
+ReadGenericMapTest.randomWrite            ConcurrentHashMap  100000  thrpt    5   273.233 ±   6.057  ops/s
+ReadGenericMapTest.randomWrite                      SyncMap  100000  thrpt    5   220.211 ±   7.689  ops/s
+ReadGenericMapTest.randomWrite              SynchronizedMap  100000  thrpt    5    42.905 ±   3.634  ops/s
 
-#### Read Generic
+ReadPrimitiveMapTest.randomRead                     SyncMap  100000  thrpt    5   962.299 ±  15.143  ops/s
+ReadPrimitiveMapTest.randomRead             SynchronizedMap  100000  thrpt    5   243.483 ±  12.702  ops/s
 
-Calls `get(Object)` on the `Map` for 1 million existing entries over 5 seconds.
+ReadPrimitiveMapTest.randomReadAndWrite             SyncMap  100000  thrpt    5   357.317 ±   8.721  ops/s
+ReadPrimitiveMapTest.randomReadAndWrite     SynchronizedMap  100000  thrpt    5    83.976 ±  15.027  ops/s
 
-Local (Windows):
-```
-Benchmark                                                     Mode  Cnt    Score   Error  Units
-HighConcurrentGenericMapRetrievalTest.concurrentHashMap      thrpt    5  182.701 ± 7.399  ops/s
-HighConcurrentGenericMapRetrievalTest.syncMap                thrpt    5  151.760 ± 4.356  ops/s
-HighConcurrentGenericMapRetrievalTest.synchronizedMap        thrpt    5   22.462 ± 0.542  ops/s
-```
-
-#### Read Fastutil
-
-Calls `get(int)` on the `Map` for 1 million existing entries over 5 seconds.
-
-Local (Windows):
-```
-Benchmark                                                     Mode  Cnt    Score   Error  Units
-HighConcurrentPrimitiveMapRetrievalTest.syncMap              thrpt    5   55.386 ± 3.189  ops/s
-HighConcurrentPrimitiveMapRetrievalTest.synchronizedMap      thrpt    5   11.822 ± 0.774  ops/s
-```
-
-#### Write Generic
-
-Calls `put(Object, Object)` on the `Map` for 1 million non-existent becoming existent
-entries over 5 seconds.
-
-Local (Windows):
-```
-Benchmark                                                     Mode  Cnt    Score   Error  Units
-HighConcurrentGenericMapMutationTest.syncMap                 thrpt    5   25.168 ± 0.423  ops/s
-HighConcurrentGenericMapMutationTest.synchronizedMap         thrpt    5   20.955 ± 0.213  ops/s
-HighConcurrentGenericMapMutationTest.concurrentMap           thrpt    5   10.835 ± 1.047  ops/s
-```
-
-#### Write Fastutil
-
-Calls `put(int, Object)` on the `Map` for 1 million non-existent becoming existent
-entries over 5 seconds.
-
-Local (Windows):
-```
-Benchmark                                                     Mode  Cnt    Score   Error  Units
-HighConcurrentPrimitiveMapMutationTest.syncMap               thrpt    5   26.150 ± 0.697  ops/s
-HighConcurrentPrimitiveMapMutationTest.synchronizedMap       thrpt    5   23.395 ± 0.094  ops/s
-```
-
-### No Contention
-
-Testing involves no other threads, thus no locking involved.
-
-#### Read Generic
-
-Calls `get(Object)` on the `Map` for 1 million existing entries over 5 seconds.
-
-Local (Windows):
-```
-Benchmark                                                 Mode  Cnt    Score   Error  Units
-GenericMapRetrievalTest.concurrentHashMap                thrpt    5   71.008 ± 0.400  ops/s
-GenericMapRetrievalTest.syncMap                          thrpt    5   62.768 ± 3.394  ops/s
-GenericMapRetrievalTest.synchronizedMap                  thrpt    5   40.977 ± 0.184  ops/s
-```
-
-#### Read Fastutil
-
-Calls `get(int)` on the `Map` for 1 million existing entries over 5 seconds.
-
-Local (Windows):
-```
-Benchmark                                                 Mode  Cnt    Score   Error  Units
-PrimitiveMapRetrievalTest.synchronizedMap                thrpt    5   24.490 ± 0.422  ops/s
-PrimitiveMapRetrievalTest.syncMap                        thrpt    5   22.490 ± 0.079  ops/s
-```
-
-#### Write Generic
-
-Calls `put(Object, Object)` on the `Map` for 1 million non-existent becoming existent
-entries over 5 seconds.
-
-Local (Windows):
-```
-Benchmark                                                 Mode  Cnt    Score   Error  Units
-GenericMapMutationTest.syncMap                           thrpt    5   58.756 ± 0.412  ops/s
-GenericMapMutationTest.concurrentMap                     thrpt    5   41.252 ± 2.493  ops/s
-GenericMapMutationTest.synchronizedMap                   thrpt    5   39.873 ± 0.178  ops/s
-```
-
-#### Write Fastutil
-
-Calls `put(int, Object)` on the `Map` for 1 million non-existent becoming existent
-entries over 5 seconds.
-
-Local (Windows):
-```
-Benchmark                                                 Mode  Cnt    Score   Error  Units
-PrimitiveMapMutationTest.syncMap                         thrpt    5   68.505 ± 0.460  ops/s
-PrimitiveMapMutationTest.synchronizedMap                 thrpt    5   43.895 ± 0.153  ops/s
+ReadPrimitiveMapTest.randomWrite                    SyncMap  100000  thrpt    5   392.015 ±   8.591  ops/s
+ReadPrimitiveMapTest.randomWrite            SynchronizedMap  100000  thrpt    5   138.869 ±  17.407  ops/s
 ```

@@ -18,8 +18,6 @@ jmh {
   // The full list of configuration options can be found here:
   // https://github.com/melix/jmh-gradle-plugin
 
-  includes.add("Low*")
-
   // Uncomment to collect GC metrics
   // profilers.add("gc")
 }

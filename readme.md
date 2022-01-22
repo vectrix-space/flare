@@ -10,7 +10,7 @@ Useful thread-safe collections with performance in mind.
 ## Building
 __Note:__ If you do not have [Gradle] installed then use `./gradlew` for Unix systems or Git Bash and gradlew.bat for Windows systems in place of any 'gradle' command.
 
-In order to build Flare you simply need to run the `gradle build` command. You can find the compiled JAR file in `./flare/build/libs` or `./flare-fastutil/build/libs` labeled 'flare-2.0.0.jar' or 'flare-fastutil-2.0.0.jar'.
+In order to build Flare you simply need to run the `gradle build` command. You can find the compiled JAR file in `./flare/build/libs` or `./flare-fastutil/build/libs` labeled 'flare-2.0.1.jar' or 'flare-fastutil-2.0.1.jar'.
 
 ## Benchmarks
 
@@ -25,8 +25,8 @@ repositories {
 }
 
 dependencies {
-  implementation "space.vectrix.flare:flare:2.0.0"
-  implementation "space.vectrix.flare-fastutil:2.0.0"
+  implementation "space.vectrix.flare:flare:2.0.1"
+  implementation "space.vectrix.flare-fastutil:2.0.1"
 }
 ```
 
@@ -36,12 +36,12 @@ Maven:
   <dependency>
     <groupId>space.vectrix.flare</groupId>
     <artifactId>flare</artifactId>
-    <version>2.0.0</version>
+    <version>2.0.1</version>
   </dependency>
   <dependency>
     <groupId>space.vectrix.flare</groupId>
     <artifactId>flare-fastutil</artifactId>
-    <version>2.0.0</version>
+    <version>2.0.1</version>
   </dependency>
 </dependencies>
 ```

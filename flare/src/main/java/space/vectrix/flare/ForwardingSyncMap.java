@@ -53,8 +53,8 @@ import java.util.function.IntFunction;
  * </ul>
  *
  * <p>In both cases, this map significantly reduces lock contention compared
- * to a traditional map paired with a read and write lock, along with maps
- * with an exclusive lock (such as using {@link Collections#synchronizedMap(Map)}.</p>
+ * to a traditional map paired with a read and write lock, along with maps with
+ * an exclusive lock (such as using {@link Collections#synchronizedMap(Map)}.</p>
  *
  * <p>Null values are not accepted. Null keys are supported if the backing collection
  * supports them.</p>
@@ -65,9 +65,9 @@ import java.util.function.IntFunction;
  * @param <V> the value type
  * @since 0.1.0
  */
-public interface SyncMap<K, V> extends ConcurrentMap<K, V> {
+public interface ForwardingSyncMap<K, V> extends ConcurrentMap<K, V> {
   /**
-   * Returns a new sync map, backed by a {@link HashMap}.
+   * Returns a new forwarding sync map, backed by a {@link HashMap}.
    *
    * @param <K> the key type
    * @param <V> the value type
@@ -75,13 +75,13 @@ public interface SyncMap<K, V> extends ConcurrentMap<K, V> {
    * @since 0.1.0
    */
   @SuppressWarnings("RedundantTypeArguments")
-  static <K, V> @NonNull SyncMap<K, V> hashmap() {
+  static <K, V> @NonNull ForwardingSyncMap<K, V> hashmap() {
     return of(HashMap<K, ExpungingEntry<V>>::new, 16);
   }
 
   /**
-   * Returns a new sync map, backed by a {@link HashMap} with a provided initial
-   * capacity.
+   * Returns a new forwarding sync map, backed by a {@link HashMap} with a
+   * provided initial capacity.
    *
    * @param initialCapacity the initial capacity of the hash map
    * @param <K> the key type
@@ -90,12 +90,13 @@ public interface SyncMap<K, V> extends ConcurrentMap<K, V> {
    * @since 0.1.0
    */
   @SuppressWarnings("RedundantTypeArguments")
-  static <K, V> @NonNull SyncMap<K, V> hashmap(final int initialCapacity) {
+  static <K, V> @NonNull ForwardingSyncMap<K, V> hashmap(final int initialCapacity) {
     return of(HashMap<K, ExpungingEntry<V>>::new, initialCapacity);
   }
 
   /**
-   * Returns a new mutable set view of a sync map, backed by a {@link HashMap}.
+   * Returns a new mutable set view of a forwarding sync map, backed by a
+   * {@link HashMap}.
    *
    * @param <K> the key type
    * @return a mutable set view of a sync map
@@ -107,8 +108,8 @@ public interface SyncMap<K, V> extends ConcurrentMap<K, V> {
   }
 
   /**
-   * Returns a new mutable set view of a sync map, backed by a {@link HashMap} with
-   * a provided initial capacity.
+   * Returns a new mutable set view of a forwarding sync map, backed by a
+   * {@link HashMap} with a provided initial capacity.
    *
    * @param initialCapacity the initial capacity of the hash map
    * @param <K> the key type
@@ -121,8 +122,8 @@ public interface SyncMap<K, V> extends ConcurrentMap<K, V> {
   }
 
   /**
-   * Returns a new sync map, backed by the provided {@link Map} implementation
-   * with a provided initial capacity.
+   * Returns a new forwarding sync map, backed by the provided {@link Map}
+   * implementation with a provided initial capacity.
    *
    * @param function the map creation function
    * @param initialCapacity the map initial capacity
@@ -131,13 +132,13 @@ public interface SyncMap<K, V> extends ConcurrentMap<K, V> {
    * @return a sync map
    * @since 0.2.0
    */
-  static <K, V> @NonNull SyncMap<K, V> of(final @NonNull IntFunction<Map<K, ExpungingEntry<V>>> function, final int initialCapacity) {
-    return new SyncMapImpl<>(function, initialCapacity);
+  static <K, V> @NonNull ForwardingSyncMap<K, V> of(final @NonNull IntFunction<Map<K, ExpungingEntry<V>>> function, final int initialCapacity) {
+    return new ForwardingSyncMapImpl<>(function, initialCapacity);
   }
 
   /**
-   * Returns a new mutable set view of a sync map, backed by the provided
-   * {@link Map} implementation with a provided initial capacity.
+   * Returns a new mutable set view of a forwarding sync map, backed by the
+   * provided {@link Map} implementation with a provided initial capacity.
    *
    * @param function the map creation function
    * @param initialCapacity the map initial capacity
@@ -146,17 +147,19 @@ public interface SyncMap<K, V> extends ConcurrentMap<K, V> {
    * @since 0.2.0
    */
   static <K> @NonNull Set<K> setOf(final @NonNull IntFunction<Map<K, ExpungingEntry<Boolean>>> function, final int initialCapacity) {
-    return Collections.newSetFromMap(new SyncMapImpl<>(function, initialCapacity));
+    return Collections.newSetFromMap(new ForwardingSyncMapImpl<>(function, initialCapacity));
   }
 
   /**
    * {@inheritDoc}
    *
-   * Iterations over a sync map are thread-safe, and the keys iterated over will not change for a single iteration
-   * attempt, however they may not necessarily reflect the state of the map at the time the iterator was created.
+   * Iterations over a forwarding sync map are thread-safe, and the keys
+   * iterated over will not change for a single iteration attempt, however
+   * they may not necessarily reflect the state of the map at the time the
+   * iterator was created.
    *
-   * <p>Performance Note: If entries have been appended to the map, iterating over the entry set will automatically
-   * promote them to the read map.</p>
+   * <p>Performance Note: If entries have been appended to the map, iterating
+   * over the entry set will automatically promote them to the read map.</p>
    */
   @Override
   @NonNull Set<Entry<K, V>> entrySet();
@@ -164,9 +167,10 @@ public interface SyncMap<K, V> extends ConcurrentMap<K, V> {
   /**
    * {@inheritDoc}
    *
-   * This implementation is {@code O(n)} in nature due to the need to check for any expunged entries. Likewise, as
-   * with other concurrent collections, the value obtained by this method may be out of date by the time this method
-   * returns.
+   * This implementation is {@code O(n)} in nature due to the need to check
+   * for any expunged entries. Likewise, as with other concurrent collections,
+   * the value obtained by this method may be out of date by the time this
+   * method returns.
    *
    * @return the size of all the mappings contained in this map
    */
@@ -176,8 +180,10 @@ public interface SyncMap<K, V> extends ConcurrentMap<K, V> {
   /**
    * {@inheritDoc}
    *
-   * This method clears the map by resetting the internal state to a state similar to as if a new map had been created.
-   * If there are concurrent iterations in progress, they will reflect the state of the map prior to being cleared.
+   * This method clears the map by resetting the internal state to a state
+   * similar to as if a new map had been created. If there are concurrent
+   * iterations in progress, they will reflect the state of the map prior
+   * to being cleared.
    */
   @Override
   void clear();

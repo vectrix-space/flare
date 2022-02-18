@@ -42,7 +42,7 @@ import java.util.function.IntFunction;
 
 import static java.util.Objects.requireNonNull;
 
-/* package */ final class SyncMapImpl<K, V> extends AbstractMap<K, V> implements SyncMap<K, V> {
+/* package */ final class ForwardingSyncMapImpl<K, V> extends AbstractMap<K, V> implements ForwardingSyncMap<K, V> {
   /**
    * A single implicit lock when dealing with {@code dirty} mutations.
    */
@@ -74,7 +74,7 @@ import static java.util.Objects.requireNonNull;
 
   private transient EntrySetView entrySet;
 
-  /* package */ SyncMapImpl(final @NonNull IntFunction<Map<K, ExpungingEntry<V>>> function, final int initialCapacity) {
+  /* package */ ForwardingSyncMapImpl(final @NonNull IntFunction<Map<K, ExpungingEntry<V>>> function, final int initialCapacity) {
     if(initialCapacity < 0) throw new IllegalArgumentException("Initial capacity must be greater than 0");
     this.function = function;
     this.read = function.apply(initialCapacity);
@@ -640,7 +640,7 @@ import static java.util.Objects.requireNonNull;
     @Override
     public @Nullable V setValue(final @NonNull V value) {
       requireNonNull(value, "value");
-      final V previous = SyncMapImpl.this.put(this.key, value);
+      final V previous = ForwardingSyncMapImpl.this.put(this.key, value);
       this.value = value;
       return previous;
     }
@@ -668,39 +668,39 @@ import static java.util.Objects.requireNonNull;
   /* package */ final class EntrySetView extends AbstractSet<Map.Entry<K, V>> {
     @Override
     public int size() {
-      return SyncMapImpl.this.size();
+      return ForwardingSyncMapImpl.this.size();
     }
 
     @Override
     public boolean contains(final @Nullable Object entry) {
       if(!(entry instanceof Map.Entry)) return false;
       final Map.Entry<?, ?> mapEntry = (Entry<?, ?>) entry;
-      final V value = SyncMapImpl.this.get(mapEntry.getKey());
+      final V value = ForwardingSyncMapImpl.this.get(mapEntry.getKey());
       return value != null && Objects.equals(value, mapEntry.getValue());
     }
 
     @Override
     public boolean add(final @NonNull Entry<K, V> entry) {
       requireNonNull(entry, "entry");
-      return SyncMapImpl.this.put(entry.getKey(), entry.getValue()) == null;
+      return ForwardingSyncMapImpl.this.put(entry.getKey(), entry.getValue()) == null;
     }
 
     @Override
     public boolean remove(final @Nullable Object entry) {
       if(!(entry instanceof Map.Entry)) return false;
       final Map.Entry<?, ?> mapEntry = (Entry<?, ?>) entry;
-      return SyncMapImpl.this.remove(mapEntry.getKey(), mapEntry.getValue());
+      return ForwardingSyncMapImpl.this.remove(mapEntry.getKey(), mapEntry.getValue());
     }
 
     @Override
     public void clear() {
-      SyncMapImpl.this.clear();
+      ForwardingSyncMapImpl.this.clear();
     }
 
     @Override
     public @NonNull Iterator<Map.Entry<K, V>> iterator() {
-      SyncMapImpl.this.promote();
-      return new EntryIterator(SyncMapImpl.this.read.entrySet().iterator());
+      ForwardingSyncMapImpl.this.promote();
+      return new EntryIterator(ForwardingSyncMapImpl.this.read.entrySet().iterator());
     }
   }
 
@@ -733,7 +733,7 @@ import static java.util.Objects.requireNonNull;
       final Map.Entry<K, V> current;
       if((current = this.current) == null) throw new IllegalStateException();
       this.current = null;
-      SyncMapImpl.this.remove(current.getKey());
+      ForwardingSyncMapImpl.this.remove(current.getKey());
     }
 
     private void advance() {

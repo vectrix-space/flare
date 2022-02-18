@@ -13,7 +13,7 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
-import space.vectrix.flare.SyncMap;
+import space.vectrix.flare.ForwardingSyncMap;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -45,7 +45,7 @@ public class DirtyGenericMapTest {
     } else if("ConcurrentHashMap".equalsIgnoreCase(this.implementation)) {
       this.map = new ConcurrentHashMap<>();
     } else if("SyncMap".equalsIgnoreCase(this.implementation)) {
-      this.map = SyncMap.hashmap();
+      this.map = ForwardingSyncMap.hashmap();
     }
   }
 

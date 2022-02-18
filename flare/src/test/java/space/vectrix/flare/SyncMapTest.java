@@ -46,7 +46,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class SyncMapTest extends AbstractMapTest<String, String> {
   @Override
   protected @NonNull Map<String, String> createMap() {
-    return SyncMap.hashmap();
+    return ForwardingSyncMap.hashmap();
   }
 
   @Override
@@ -362,7 +362,7 @@ public class SyncMapTest extends AbstractMapTest<String, String> {
 
   @Test
   public void testConcurrentPutRemove() throws Throwable {
-    final Map<Integer, Boolean> map = SyncMap.hashmap();
+    final Map<Integer, Boolean> map = ForwardingSyncMap.hashmap();
     final Waiter waiter = new Waiter();
     final AtomicInteger counter = new AtomicInteger();
 

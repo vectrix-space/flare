@@ -7,7 +7,7 @@ plugins {
 }
 
 dependencies {
-  api("it.unimi.dsi:fastutil:8.5.6")
+  api("it.unimi.dsi:fastutil:8.5.8")
 }
 
 val licenseText : Property<String> = objects.property(String::class.java)

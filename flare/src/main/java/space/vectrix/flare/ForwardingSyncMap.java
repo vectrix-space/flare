@@ -215,10 +215,10 @@ public interface ForwardingSyncMap<K, V> extends ConcurrentMap<K, V> {
   @NotNull Set<Entry<K, V>> entrySet();
 
   /**
-   * The expunging entry the backing map wraps for its values.
+   * Wrapper for a value that can be expunged.
    *
    * @param <V> the value type
-   * @since 2.0.0
+   * @since 3.0.0
    */
   interface ExpungingValue<V> {
     /**
@@ -226,7 +226,7 @@ public interface ForwardingSyncMap<K, V> extends ConcurrentMap<K, V> {
      * Otherwise, it returns {@code false}.
      *
      * @return true if the value does not exist, otherwise false
-     * @since 2.1.0
+     * @since 3.0.0
      */
     boolean empty();
 
@@ -234,7 +234,7 @@ public interface ForwardingSyncMap<K, V> extends ConcurrentMap<K, V> {
      * Returns the value or {@code null} if it has been expunged.
      *
      * @return the value or null if it is expunged
-     * @since 2.0.0
+     * @since 3.0.0
      */
     @Nullable V get();
 
@@ -243,7 +243,7 @@ public interface ForwardingSyncMap<K, V> extends ConcurrentMap<K, V> {
      *
      * @param defaultValue the default value
      * @return the value if present, otherwise the default value
-     * @since 2.1.0
+     * @since 3.0.0
      */
     @NotNull V getOrDefault(final @NotNull V defaultValue);
 
@@ -335,7 +335,7 @@ public interface ForwardingSyncMap<K, V> extends ConcurrentMap<K, V> {
      * Clears and returns the previous value.
      *
      * @return the previous
-     * @since 2.0.0
+     * @since 3.0.0
      */
     @Nullable V clear();
 

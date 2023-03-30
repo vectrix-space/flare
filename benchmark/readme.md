@@ -26,27 +26,27 @@ These maps are not populated with values beforehand. `SyncMap` is at a
 disadvantage by taking the slowest path (locking) the most.
 
 ```
-Benchmark                                  (implementation)  (size)   Mode  Cnt      Score       Error  Units
-DirtyGenericMapTest.randomRead                      SyncMap  100000  thrpt    5   2932.239 ±    23.499  ops/s
-DirtyGenericMapTest.randomRead            ConcurrentHashMap  100000  thrpt    5   2794.828 ±    51.599  ops/s
-DirtyGenericMapTest.randomRead              SynchronizedMap  100000  thrpt    5    404.373 ±    27.150  ops/s
+Benchmark                                  (implementation)  (size)   Mode  Cnt     Score      Error  Units
+DirtyGenericMapTest.randomRead                      SyncMap  100000  thrpt    5  2926.625 ±   23.576  ops/s
+DirtyGenericMapTest.randomRead            ConcurrentHashMap  100000  thrpt    5  2787.740 ±   32.138  ops/s
+DirtyGenericMapTest.randomRead              SynchronizedMap  100000  thrpt    5   403.330 ±   36.800  ops/s
 
-DirtyGenericMapTest.randomReadAndWrite    ConcurrentHashMap  100000  thrpt    5    619.154 ±     2.262  ops/s
-DirtyGenericMapTest.randomReadAndWrite              SyncMap  100000  thrpt    5    521.510 ±    30.843  ops/s
-DirtyGenericMapTest.randomReadAndWrite      SynchronizedMap  100000  thrpt    5     60.726 ±     1.230  ops/s
+DirtyGenericMapTest.randomReadAndWrite    ConcurrentHashMap  100000  thrpt    5   618.946 ±    7.933  ops/s
+DirtyGenericMapTest.randomReadAndWrite              SyncMap  100000  thrpt    5   541.955 ±    5.410  ops/s
+DirtyGenericMapTest.randomReadAndWrite      SynchronizedMap  100000  thrpt    5    61.987 ±    0.633  ops/s
 
-DirtyGenericMapTest.randomWrite           ConcurrentHashMap  100000  thrpt    5    817.667 ±     5.822  ops/s
-DirtyGenericMapTest.randomWrite                     SyncMap  100000  thrpt    5    717.097 ±     6.000  ops/s
-DirtyGenericMapTest.randomWrite             SynchronizedMap  100000  thrpt    5     94.058 ±     1.768  ops/s
+DirtyGenericMapTest.randomWrite           ConcurrentHashMap  100000  thrpt    5   816.505 ±   23.983  ops/s
+DirtyGenericMapTest.randomWrite                     SyncMap  100000  thrpt    5   740.277 ±   11.401  ops/s
+DirtyGenericMapTest.randomWrite             SynchronizedMap  100000  thrpt    5    97.399 ±    1.864  ops/s
 
-DirtyPrimitiveMapTest.randomRead                    SyncMap  100000  thrpt    5  10151.013 ±  2470.746  ops/s
-DirtyPrimitiveMapTest.randomRead            SynchronizedMap  100000  thrpt    5    436.111 ±     7.576  ops/s
+DirtyPrimitiveMapTest.randomRead                    SyncMap  100000  thrpt    5  9879.012 ± 2496.948  ops/s
+DirtyPrimitiveMapTest.randomRead            SynchronizedMap  100000  thrpt    5   471.234 ±    8.487  ops/s
 
-DirtyPrimitiveMapTest.randomReadAndWrite            SyncMap  100000  thrpt    5   1075.681 ±    21.117  ops/s
-DirtyPrimitiveMapTest.randomReadAndWrite    SynchronizedMap  100000  thrpt    5    117.135 ±     7.941  ops/s
+DirtyPrimitiveMapTest.randomReadAndWrite            SyncMap  100000  thrpt    5  1084.321 ±   26.096  ops/s
+DirtyPrimitiveMapTest.randomReadAndWrite    SynchronizedMap  100000  thrpt    5   118.458 ±    4.836  ops/s
 
-DirtyPrimitiveMapTest.randomWrite           SynchronizedMap  100000  thrpt    5    175.328 ±     3.977  ops/s
-DirtyPrimitiveMapTest.randomWrite                   SyncMap  100000  thrpt    5    112.904 ±     1.829  ops/s
+DirtyPrimitiveMapTest.randomWrite                   SyncMap  100000  thrpt    5  1232.352 ±   15.570  ops/s
+DirtyPrimitiveMapTest.randomWrite           SynchronizedMap  100000  thrpt    5   171.266 ±    4.746  ops/s
 ```
 
 ### Only Read (5 threads)
@@ -55,24 +55,25 @@ These maps are populated with values beforehand. `SyncMap` will be taking
 the fastest path (no locking) the most.
 
 ```
-ReadGenericMapTest.randomRead             ConcurrentHashMap  100000  thrpt    5   1230.149 ±   13.982  ops/s
-ReadGenericMapTest.randomRead                       SyncMap  100000  thrpt    5   1020.432 ±   15.523  ops/s
-ReadGenericMapTest.randomRead               SynchronizedMap  100000  thrpt    5    110.366 ±    1.975  ops/s
+Benchmark                                  (implementation)  (size)   Mode  Cnt     Score      Error  Units
+ReadGenericMapTest.randomRead             ConcurrentHashMap  100000  thrpt    5  1247.149 ±   21.514  ops/s
+ReadGenericMapTest.randomRead                       SyncMap  100000  thrpt    5  1090.509 ±   10.417  ops/s
+ReadGenericMapTest.randomRead               SynchronizedMap  100000  thrpt    5   117.445 ±    4.709  ops/s
 
-ReadGenericMapTest.randomReadAndWrite     ConcurrentHashMap  100000  thrpt    5    654.202 ±    7.295  ops/s
-ReadGenericMapTest.randomReadAndWrite               SyncMap  100000  thrpt    5    588.168 ±    4.301  ops/s
-ReadGenericMapTest.randomReadAndWrite       SynchronizedMap  100000  thrpt    5     60.217 ±    0.884  ops/s
+ReadGenericMapTest.randomReadAndWrite     ConcurrentHashMap  100000  thrpt    5   627.768 ±   58.529  ops/s
+ReadGenericMapTest.randomReadAndWrite               SyncMap  100000  thrpt    5   556.584 ±  227.972  ops/s
+ReadGenericMapTest.randomReadAndWrite       SynchronizedMap  100000  thrpt    5    65.733 ±    4.445  ops/s
 
-ReadGenericMapTest.randomWrite            ConcurrentHashMap  100000  thrpt    5    864.681 ±   13.600  ops/s
-ReadGenericMapTest.randomWrite                      SyncMap  100000  thrpt    5    857.699 ±   10.189  ops/s
-ReadGenericMapTest.randomWrite              SynchronizedMap  100000  thrpt    5    100.739 ±    2.726  ops/s
+ReadGenericMapTest.randomWrite            ConcurrentHashMap  100000  thrpt    5   869.584 ±    9.220  ops/s
+ReadGenericMapTest.randomWrite                      SyncMap  100000  thrpt    5   869.546 ±   10.004  ops/s
+ReadGenericMapTest.randomWrite              SynchronizedMap  100000  thrpt    5    96.649 ±    1.600  ops/s
 
-ReadPrimitiveMapTest.randomRead                     SyncMap  100000  thrpt    5   2863.238 ±  131.310  ops/s
-ReadPrimitiveMapTest.randomRead             SynchronizedMap  100000  thrpt    5    289.462 ±    8.202  ops/s
+ReadPrimitiveMapTest.randomRead                     SyncMap  100000  thrpt    5  3045.319 ±   73.983  ops/s
+ReadPrimitiveMapTest.randomRead             SynchronizedMap  100000  thrpt    5   323.276 ±    8.732  ops/s
 
-ReadPrimitiveMapTest.randomReadAndWrite             SyncMap  100000  thrpt    5   1050.175 ±   20.500  ops/s
-ReadPrimitiveMapTest.randomReadAndWrite     SynchronizedMap  100000  thrpt    5    119.740 ±    1.248  ops/s
+ReadPrimitiveMapTest.randomReadAndWrite             SyncMap  100000  thrpt    5  1139.582 ±   16.770  ops/s
+ReadPrimitiveMapTest.randomReadAndWrite     SynchronizedMap  100000  thrpt    5   119.114 ±    4.020  ops/s
 
-ReadPrimitiveMapTest.randomWrite                    SyncMap  100000  thrpt    5   1147.702 ±   10.950  ops/s
-ReadPrimitiveMapTest.randomWrite            SynchronizedMap  100000  thrpt    5    179.187 ±    3.815  ops/s
+ReadPrimitiveMapTest.randomWrite                    SyncMap  100000  thrpt    5  1231.071 ±   26.118  ops/s
+ReadPrimitiveMapTest.randomWrite            SynchronizedMap  100000  thrpt    5   175.135 ±    3.720  ops/s
 ```

@@ -33,7 +33,6 @@ import org.gradle.api.model.ObjectFactory;
 import javax.inject.Inject;
 
 public class SourceSetTemplateExtensionImpl implements SourceSetTemplateExtension {
-
   private static final String SINGLE_SET_NAME = "main";
 
   private final NamedDomainObjectContainer<TemplateSet> templateSets;

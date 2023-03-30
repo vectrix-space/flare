@@ -78,6 +78,15 @@ import static java.util.Objects.requireNonNull;
   }
 
   @Override
+  public boolean containsValue(final @Nullable Object value) {
+    final Map<K, ExpungingValue<V>> immutable = this.promote();
+    for(final ExpungingValue<V> entry : immutable.values()) {
+      if(Objects.equals(entry.get(), value)) return true;
+    }
+    return false;
+  }
+
+  @Override
   public boolean containsKey(final @Nullable Object key) {
     final ExpungingValue<V> value = this.getValue(key);
     return value != null && !value.empty();

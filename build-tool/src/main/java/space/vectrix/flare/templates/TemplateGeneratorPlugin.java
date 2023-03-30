@@ -46,7 +46,6 @@ import org.jetbrains.annotations.NotNull;
  * <p>Uses pebble templates, properties are applied on a sourceset level</p>
  */
 public class TemplateGeneratorPlugin implements ProjectPlugin {
-
   private static final String GENERATION_GROUP = "generation";
 
   @Override

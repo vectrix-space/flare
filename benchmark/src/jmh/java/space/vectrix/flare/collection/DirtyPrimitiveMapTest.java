@@ -16,6 +16,7 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
+import space.vectrix.flare.fastutil.Int2ObjectSyncMap;
 
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
@@ -41,7 +42,7 @@ public class DirtyPrimitiveMapTest {
     if("SynchronizedMap".equalsIgnoreCase(this.implementation)) {
       this.map = Int2ObjectMaps.synchronize(new Int2ObjectOpenHashMap<>());
     } else if("SyncMap".equalsIgnoreCase(this.implementation)) {
-      this.map = Byte2ObjectSyncMap.hashmap();
+      this.map = Int2ObjectSyncMap.hashmap();
     }
   }
 

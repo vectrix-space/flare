@@ -58,8 +58,9 @@ import static java.util.Objects.requireNonNull;
 
   @Override
   public boolean containsValue(final @Nullable Object value) {
-    for(final {{ K }}2ObjectMap.Entry<V> entry : this.{{ k }}2ObjectEntrySet()) {
-      if(Objects.equals(entry.getValue(), value)) return true;
+    final {{ K }}2ObjectMap<{{ K }}2ObjectExpungingValue<V>> immutable = this.promote();
+    for(final ExpungingValue<V> entry : immutable.values()) {
+      if(Objects.equals(entry.get(), value)) return true;
     }
     return false;
   }

@@ -58,7 +58,6 @@ import java.util.Map;
 import java.util.Set;
 
 public abstract class GenerateTemplates extends DefaultTask {
-
   private static final String FILE_NAME_CACHE_DISAMBIGUATOR = "###";
   private static final String PEBBLE_EXTENSION = ".peb";
 
@@ -160,5 +159,4 @@ public abstract class GenerateTemplates extends DefaultTask {
     template.evaluate(writer, data);
     return writer.toString();
   }
-
 }

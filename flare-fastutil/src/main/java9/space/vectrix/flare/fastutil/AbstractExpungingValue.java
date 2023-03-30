@@ -34,7 +34,7 @@ import java.util.Map;
 import java.util.Objects;
 
 @SuppressWarnings("unchecked")
-/* package */ abstract class AbstractExpungingValue<V> implements ExpungingValue<V> {
+public abstract class AbstractExpungingValue<V> implements ExpungingValue<V> {
   protected static final VarHandle UPDATER;
   protected static final Object EXPUNGED = new Object();
   protected volatile Object value;
@@ -48,7 +48,7 @@ import java.util.Objects;
     }
   }
 
-  /* package */ AbstractExpungingValue(final @NotNull V value) {
+  protected AbstractExpungingValue(final @NotNull V value) {
     this.value = value;
   }
 

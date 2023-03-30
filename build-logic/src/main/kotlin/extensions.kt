@@ -6,7 +6,7 @@ import org.gradle.kotlin.dsl.findByType
 import org.gradle.kotlin.dsl.named
 
 fun Project.applyJarMetadata(moduleName: String) {
-  if ("jar" in tasks.names) {
+  if("jar" in tasks.names) {
     tasks.named<Jar>("jar") {
       manifest.attributes(
         "Automatic-Module-Name" to moduleName,

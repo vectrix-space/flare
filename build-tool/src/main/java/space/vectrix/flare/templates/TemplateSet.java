@@ -66,7 +66,6 @@ import javax.inject.Inject;
  *
  */
 public abstract class TemplateSet implements Named {
-
   // shared
   private final ConfigurableFileCollection dataFiles;
   private final MapProperty<String, Object> properties;
@@ -249,5 +248,4 @@ public abstract class TemplateSet implements Named {
     }
     return ret;
   }
-
 }

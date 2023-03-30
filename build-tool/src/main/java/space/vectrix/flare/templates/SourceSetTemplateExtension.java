@@ -33,7 +33,6 @@ import org.gradle.api.NamedDomainObjectContainer;
  * Templates per-SourceSet
  */
 public interface SourceSetTemplateExtension {
-
   // single batch, at src/<name>/templates
   void singleSet(final Action<TemplateSet> properties);
 

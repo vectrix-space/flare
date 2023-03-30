@@ -32,14 +32,20 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
+/**
+ * Abstract wrapper for a value that can be expunged.
+ *
+ * @param <V> the value type
+ * @since 3.0.0
+ */
 @SuppressWarnings({"rawtypes", "unchecked"})
-/* package */ abstract class AbstractExpungingValue<V> implements ExpungingValue<V> {
+public abstract class AbstractExpungingValue<V> implements ExpungingValue<V> {
   protected static final AtomicReferenceFieldUpdater<AbstractExpungingValue, Object> UPDATER = AtomicReferenceFieldUpdater
     .newUpdater(AbstractExpungingValue.class, Object.class, "value");
   protected static final Object EXPUNGED = new Object();
   protected volatile Object value;
 
-  /* package */ AbstractExpungingValue(final @NotNull V value) {
+  protected AbstractExpungingValue(final @NotNull V value) {
     this.value = value;
   }
 

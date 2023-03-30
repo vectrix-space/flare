@@ -29,13 +29,19 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
 
-/* package */ interface ExpungingValue<V> {
+/**
+ * Wrapper for a value that can be expunged.
+ *
+ * @param <V> the value type
+ * @since 3.0.0
+ */
+public interface ExpungingValue<V> {
   /**
    * Returns {@code true} if this entry has been expunged or is {@code null}.
    * Otherwise, it returns {@code false}.
    *
    * @return true if the value does not exist, otherwise false
-   * @since 2.1.0
+   * @since 3.0.0
    */
   boolean empty();
 
@@ -43,7 +49,7 @@ import java.util.Map;
    * Returns the value or {@code null} if it has been expunged.
    *
    * @return the value or null if it is expunged
-   * @since 2.0.0
+   * @since 3.0.0
    */
   @Nullable V get();
 
@@ -52,7 +58,7 @@ import java.util.Map;
    *
    * @param defaultValue the default value
    * @return the value if present, otherwise the default value
-   * @since 2.1.0
+   * @since 3.0.0
    */
   @NotNull V getOrDefault(final @NotNull V defaultValue);
 
@@ -118,7 +124,7 @@ import java.util.Map;
    * Clears and returns the previous value.
    *
    * @return the previous
-   * @since 2.0.0
+   * @since 3.0.0
    */
   @Nullable V clear();
 

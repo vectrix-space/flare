@@ -33,7 +33,6 @@ import org.gradle.api.provider.MapProperty;
 import javax.inject.Inject;
 
 public class TemplateProperties {
-
   private final MapProperty<String, Object> properties;
 
   @Inject

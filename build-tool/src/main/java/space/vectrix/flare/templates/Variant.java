@@ -49,7 +49,6 @@ import javax.inject.Inject;
  * </ul>
  */
 public class Variant implements Named {
-
   private final String name;
   private final ConfigurableFileCollection sourceFiles;
   private final MapProperty<String, Object> runtimeProperties;
@@ -81,5 +80,4 @@ public class Variant implements Named {
   public void properties(final Action<MapProperty<String, Object>> configureAction) {
     Configurable.configure(this.runtimeProperties, configureAction);
   }
-
 }

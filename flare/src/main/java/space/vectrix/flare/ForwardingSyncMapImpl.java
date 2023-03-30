@@ -24,8 +24,8 @@
  */
 package space.vectrix.flare;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.AbstractMap;
 import java.util.AbstractSet;
@@ -34,7 +34,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -43,94 +42,71 @@ import java.util.function.IntFunction;
 import static java.util.Objects.requireNonNull;
 
 /* package */ final class ForwardingSyncMapImpl<K, V> extends AbstractMap<K, V> implements ForwardingSyncMap<K, V> {
-  /**
-   * A single implicit lock when dealing with {@code dirty} mutations.
-   */
   private transient final Object lock = new Object();
-
-  /**
-   * The read only map that does not require a lock and does not allow mutations.
-   */
-  private transient volatile Map<K, ExpungingEntry<V>> read;
-
-  /**
-   * Represents whether the {@code dirty} map has changes the {@code read} map
-   * does not have yet.
-   */
+  private transient final IntFunction<Map<K, ExpungingValue<V>>> function;
+  private transient volatile Map<K, ExpungingValue<V>> immutable;
   private transient volatile boolean amended;
-
-  /**
-   * The read/write map that requires a lock and allows mutations.
-   */
-  private transient Map<K, ExpungingEntry<V>> dirty;
-
-  /**
-   * Represents the amount of times an attempt has been made to access the
-   * {@code dirty} map while {@code amended} is {@code true}.
-   */
+  private transient Map<K, ExpungingValue<V>> mutable;
   private transient int misses;
+  private transient EntrySet entrySet;
 
-  private transient final IntFunction<Map<K, ExpungingEntry<V>>> function;
-
-  private transient EntrySetView entrySet;
-
-  /* package */ ForwardingSyncMapImpl(final @NonNull IntFunction<Map<K, ExpungingEntry<V>>> function, final int initialCapacity) {
+  /* package */ ForwardingSyncMapImpl(final @NotNull IntFunction<Map<K, ExpungingValue<V>>> function, final int initialCapacity) {
     if(initialCapacity < 0) throw new IllegalArgumentException("Initial capacity must be greater than 0");
     this.function = function;
-    this.read = function.apply(initialCapacity);
+    this.immutable = function.apply(initialCapacity);
   }
 
   // Query Operations
 
   @Override
   public int size() {
-    this.promote();
+    final Map<K, ExpungingValue<V>> immutable = this.promote();
     int size = 0;
-    for(final ExpungingEntry<V> value : this.read.values()) {
-      if(value.exists()) size++;
+    for(final ExpungingValue<V> value : immutable.values()) {
+      if(!value.empty()) size++;
     }
     return size;
   }
 
   @Override
   public boolean isEmpty() {
-    this.promote();
-    for(final ExpungingEntry<V> value : this.read.values()) {
-      if(value.exists()) return false;
+    final Map<K, ExpungingValue<V>> immutable = this.promote();
+    for(final ExpungingValue<V> value : immutable.values()) {
+      if(!value.empty()) return false;
     }
     return true;
   }
 
   @Override
   public boolean containsKey(final @Nullable Object key) {
-    final ExpungingEntry<V> entry = this.getEntry(key);
-    return entry != null && entry.exists();
+    final ExpungingValue<V> value = this.getValue(key);
+    return value != null && !value.empty();
   }
 
   @Override
   public @Nullable V get(final @Nullable Object key) {
-    final ExpungingEntry<V> entry = this.getEntry(key);
-    return entry != null ? entry.get() : null;
+    final ExpungingValue<V> value = this.getValue(key);
+    return value != null ? value.get() : null;
   }
 
   @Override
-  public @NonNull V getOrDefault(final @Nullable Object key, final @NonNull V defaultValue) {
+  public @NotNull V getOrDefault(final @Nullable Object key, final @NotNull V defaultValue) {
     requireNonNull(defaultValue, "defaultValue");
-    final ExpungingEntry<V> entry = this.getEntry(key);
-    return entry != null ? entry.getOr(defaultValue) : defaultValue;
+    final ExpungingValue<V> value = this.getValue(key);
+    return value != null ? value.getOrDefault(defaultValue) : defaultValue;
   }
 
   @SuppressWarnings("SuspiciousMethodCalls")
-  private @Nullable ExpungingEntry<V> getEntry(final @Nullable Object key) {
-    ExpungingEntry<V> entry = this.read.get(key);
-    if(entry == null && this.amended) {
+  private @Nullable ExpungingValue<V> getValue(final @Nullable Object key) {
+    ExpungingValue<V> entry = this.immutable.get(key);
+    if(entry != null) return entry;
+    if(this.amended) {
+      // Check if the map is amended to access an entry from the mutable map.
       synchronized(this.lock) {
-        if((entry = this.read.get(key)) == null && this.amended && this.dirty != null) {
-          entry = this.dirty.get(key);
-          // The slow path should be avoided, even if the value does
-          // not match or is present. So we mark a miss, to eventually
-          // promote and take a faster path.
-          this.missLocked();
+        if((entry = this.immutable.get(key)) == null && this.amended) {
+          entry = this.mutable.get(key);
+          // Count a miss to avoid taking this slow path in the future.
+          this.lockedMiss();
         }
       }
     }
@@ -138,186 +114,196 @@ import static java.util.Objects.requireNonNull;
   }
 
   @Override
-  public @Nullable V computeIfAbsent(final @Nullable K key, final @NonNull Function<? super K, ? extends V> mappingFunction) {
+  public @Nullable V computeIfAbsent(final @Nullable K key, final @NotNull Function<? super K, ? extends V> mappingFunction) {
     requireNonNull(mappingFunction, "mappingFunction");
-    ExpungingEntry<V> entry = this.read.get(key);
-    InsertionResult<V> result = entry != null ? entry.computeIfAbsent(key, mappingFunction) : null;
-    if(result != null && result.operation() == InsertionResultImpl.UPDATED) return result.current();
+    // Compute the mapping function ahead of time, so we
+    // can exit early if the computed value is null or
+    // throws an exception.
+    final V newValue = mappingFunction.apply(key);
+    if(newValue == null) return null;
+    ExpungingValue<V> entry = this.immutable.get(key);
+    Map.Entry<V, Operation> result = entry != null ? entry.updateAbsent(null, newValue) : null;
+    if(result != null && result.getValue() != Operation.EXPUNGED) return result.getKey();
     synchronized(this.lock) {
-      if((entry = this.read.get(key)) != null) {
-        // If the entry was expunged, unexpunge, add the entry
-        // back to the dirty map.
-        if(entry.tryUnexpungeAndCompute(key, mappingFunction)) {
-          if(entry.exists()) this.dirty.put(key, entry);
-          return entry.get();
-        } else {
-          result = entry.computeIfAbsent(key, mappingFunction);
+      if((entry = this.immutable.get(key)) != null) {
+        // Unexpunge the entry. If modified add back
+        // to the mutable map.
+        if(entry.unexpunge(newValue)) {
+          this.mutable.put(key, entry);
+          return newValue;
         }
-      } else if(this.dirty != null && (entry = this.dirty.get(key)) != null) {
-        result = entry.computeIfAbsent(key, mappingFunction);
-        if(result.current() == null) this.dirty.remove(key);
+        // Otherwise force set the value onto the entry.
+        result = entry.forceUpdateAbsent(null, newValue);
+      } else if(this.amended && (entry = this.mutable.get(key)) != null) {
+        result = entry.forceUpdateAbsent(null, newValue);
         // The slow path should be avoided, even if the value does
         // not match or is present. So we mark a miss, to eventually
         // promote and take a faster path.
-        this.missLocked();
+        this.lockedMiss();
       } else {
         if(!this.amended) {
-          // Adds the first new key to the dirty map and marks it as
+          // Adds the first new key to the mutable map and marks it as
           // amended.
-          this.dirtyLocked();
-          this.amended = true;
+          this.lockedDirty();
         }
-        final V computed = mappingFunction.apply(key);
-        if(computed != null) this.dirty.put(key, new ExpungingEntryImpl<>(computed));
-        return computed;
+        this.mutable.put(key, new ExpungingValueImpl<>(newValue));
+        return newValue;
       }
     }
-    return result.current();
+    return result.getValue() != Operation.EXPUNGED ? result.getKey() : null;
   }
 
   @Override
-  public @Nullable V computeIfPresent(final @Nullable K key, final @NonNull BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
+  public @Nullable V computeIfPresent(final @Nullable K key, final @NotNull BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
     requireNonNull(remappingFunction, "remappingFunction");
-    ExpungingEntry<V> entry = this.read.get(key);
-    InsertionResult<V> result = entry != null ? entry.computeIfPresent(key, remappingFunction) : null;
-    if(result != null && result.operation() == InsertionResultImpl.UPDATED) return result.current();
+    ExpungingValue<V> entry = this.immutable.get(key);
+    final Map.Entry<V, Operation> result = entry != null ? entry.computePresent(key, remappingFunction) : null;
+    if(result != null && result.getValue() != Operation.EXPUNGED) return result.getKey();
+    V previous, next = null;
     synchronized(this.lock) {
-      if((entry = this.read.get(key)) != null) {
-        result = entry.computeIfPresent(key, remappingFunction);
-      } else if(this.dirty != null && (entry = this.dirty.get(key)) != null) {
-        result = entry.computeIfPresent(key, remappingFunction);
-        if(result.current() == null) this.dirty.remove(key);
+      if((entry = this.immutable.get(key)) != null) {
+        // If the entry value does not exist, return null,
+        // otherwise force set the value onto the entry.
+        if((previous = entry.get()) == null) return null;
+        entry.forceUpdate(previous, next = remappingFunction.apply(key, previous));
+      } else if(this.amended && (entry = this.mutable.get(key)) != null) {
+        if((previous = entry.get()) == null) return null;
+        entry.forceUpdate(previous, next = remappingFunction.apply(key, previous));
         // The slow path should be avoided, even if the value does
         // not match or is present. So we mark a miss, to eventually
         // promote and take a faster path.
-        this.missLocked();
+        this.lockedMiss();
       }
     }
-    return result != null ? result.current() : null;
+    return next;
   }
 
   @Override
-  public @Nullable V compute(final @Nullable K key, final @Nullable BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
+  public @Nullable V compute(final @Nullable K key, final @NotNull BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
     requireNonNull(remappingFunction, "remappingFunction");
-    ExpungingEntry<V> entry = this.read.get(key);
-    InsertionResult<V> result = entry != null ? entry.compute(key, remappingFunction) : null;
-    if(result != null && result.operation() == InsertionResultImpl.UPDATED) return result.current();
+    ExpungingValue<V> entry = this.immutable.get(key);
+    final Map.Entry<V, Operation> result = entry != null ? entry.compute(key, remappingFunction) : null;
+    if(result != null && result.getValue() != Operation.EXPUNGED) return result.getKey();
+    final V next;
     synchronized(this.lock) {
-      if((entry = this.read.get(key)) != null) {
+      if((entry = this.immutable.get(key)) != null) {
+        next = remappingFunction.apply(key, entry.get());
         // If the entry was expunged, unexpunge, add the entry
-        // back to the dirty map if the value is not null.
-        if(entry.tryUnexpungeAndCompute(key, remappingFunction)) {
-          if(entry.exists()) this.dirty.put(key, entry);
-          return entry.get();
-        } else {
-          result = entry.compute(key, remappingFunction);
+        // back to the mutable map, if the value exists.
+        if(entry.unexpunge(next)) {
+          if(next != null) this.mutable.put(key, entry);
+          return next;
         }
-      } else if(this.dirty != null && (entry = this.dirty.get(key)) != null) {
-        result = entry.compute(key, remappingFunction);
-        if(result.current() == null) this.dirty.remove(key);
+        // Otherwise force set the value onto the entry.
+        entry.forceSet(next);
+      } else if(this.amended && (entry = this.mutable.get(key)) != null) {
+        next = remappingFunction.apply(key, entry.get());
+        // If the value does not exist, remove it from the
+        // mutable map and force set the next value.
+        if(next == null) this.mutable.remove(key);
+        entry.forceSet(next);
         // The slow path should be avoided, even if the value does
         // not match or is present. So we mark a miss, to eventually
         // promote and take a faster path.
-        this.missLocked();
+        this.lockedMiss();
       } else {
         if(!this.amended) {
-          // Adds the first new key to the dirty map and marks it as
+          // Adds the first new key to the mutable map and marks it as
           // amended.
-          this.dirtyLocked();
-          this.amended = true;
+          this.lockedDirty();
         }
-        final V computed = remappingFunction.apply(key, null);
-        if(computed != null) this.dirty.put(key, new ExpungingEntryImpl<>(computed));
-        return computed;
+        next = remappingFunction.apply(key, null);
+        if(next != null) this.mutable.put(key, new ExpungingValueImpl<>(next));
       }
     }
-    return result.current();
+    return next;
   }
 
   @Override
-  @SuppressWarnings("ConstantConditions")
-  public @Nullable V putIfAbsent(final @Nullable K key, final @NonNull V value) {
+  public @Nullable V putIfAbsent(final @Nullable K key, final @NotNull V value) {
     requireNonNull(value, "value");
-    ExpungingEntry<V> entry = this.read.get(key);
-    InsertionResult<V> result = entry != null ? entry.setIfAbsent(value) : null;
-    if(result != null && result.operation() == InsertionResultImpl.UPDATED) return result.previous();
+    ExpungingValue<V> entry = this.immutable.get(key);
+    Map.Entry<V, Operation> result = entry != null ? entry.update(null, value) : null;
+    if(result != null && result.getValue() != Operation.EXPUNGED) return result.getKey();
     synchronized(this.lock) {
-      if((entry = this.read.get(key)) != null) {
-        // If the entry was expunged, unexpunge, add the entry
-        // back to the dirty map and return null, as we know there
-        // was no previous value.
-        if(entry.tryUnexpungeAndSet(value)) {
-          this.dirty.put(key, entry);
+      if((entry = this.immutable.get(key)) != null) {
+        // Unexpunge the entry. If modified add back
+        // to the mutable map.
+        if(entry.unexpunge(value)) {
+          this.mutable.put(key, entry);
           return null;
-        } else {
-          result = entry.setIfAbsent(value);
         }
-      } else if(this.dirty != null && (entry = this.dirty.get(key)) != null) {
-        result = entry.setIfAbsent(value);
+        // Otherwise force set the value onto the entry.
+        result = entry.forceUpdate(null, value);
+      } else if(this.amended && (entry = this.mutable.get(key)) != null) {
+        result = entry.forceUpdate(null, value);
         // The slow path should be avoided, even if the value does
         // not match or is present. So we mark a miss, to eventually
         // promote and take a faster path.
-        this.missLocked();
+        this.lockedMiss();
       } else {
         if(!this.amended) {
-          // Adds the first new key to the dirty map and marks it as
+          // Adds the first new key to the mutable map and marks it as
           // amended.
-          this.dirtyLocked();
-          this.amended = true;
+          this.lockedDirty();
         }
-        this.dirty.put(key, new ExpungingEntryImpl<>(value));
+        this.mutable.put(key, new ExpungingValueImpl<>(value));
         return null;
       }
     }
-    return result.previous();
+    return result.getKey();
   }
 
   @Override
-  @SuppressWarnings("ConstantConditions")
-  public @Nullable V put(final @Nullable K key, final @NonNull V value) {
+  public @Nullable V put(final @Nullable K key, final @NotNull V value) {
     requireNonNull(value, "value");
-    ExpungingEntry<V> entry = this.read.get(key);
-    V previous = entry != null ? entry.get() : null;
-    if(entry != null && entry.trySet(value)) return previous;
+    ExpungingValue<V> entry = this.immutable.get(key);
+    Map.Entry<V, Operation> result = entry != null ? entry.set(value) : null;
+    if(result != null && result.getValue() != Operation.EXPUNGED) return result.getKey();
+    final V previousValue;
     synchronized(this.lock) {
-      if((entry = this.read.get(key)) != null) {
-        previous = entry.get();
-        // If the entry was expunged, unexpunge and add the entry
-        // back to the dirty map.
-        if(entry.tryUnexpungeAndSet(value)) {
-          this.dirty.put(key, entry);
-        } else {
-          entry.set(value);
+      if((entry = this.immutable.get(key)) != null) {
+        // Unexpunge the entry. If modified add back
+        // to the mutable map.
+        if(entry.unexpunge(value)) {
+          this.mutable.put(key, entry);
+          return null;
         }
-      } else if(this.dirty != null && (entry = this.dirty.get(key)) != null) {
-        previous = entry.get();
-        entry.set(value);
+        // Otherwise force set the value onto the entry.
+        previousValue = entry.get();
+        entry.forceSet(value);
+      } else if(this.amended && (entry = this.mutable.get(key)) != null) {
+        previousValue = entry.get();
+        entry.forceSet(value);
+        // The slow path should be avoided, even if the value does
+        // not match or is present. So we mark a miss, to eventually
+        // promote and take a faster path.
+        this.lockedMiss();
       } else {
         if(!this.amended) {
-          // Adds the first new key to the dirty map and marks it as
+          // Adds the first new key to the mutable map and marks it as
           // amended.
-          this.dirtyLocked();
-          this.amended = true;
+          this.lockedDirty();
         }
-        this.dirty.put(key, new ExpungingEntryImpl<>(value));
+        this.mutable.put(key, new ExpungingValueImpl<>(value));
         return null;
       }
     }
-    return previous;
+    return previousValue;
   }
 
   @Override
   @SuppressWarnings("SuspiciousMethodCalls")
   public @Nullable V remove(final @Nullable Object key) {
-    ExpungingEntry<V> entry = this.read.get(key);
+    ExpungingValue<V> entry = this.immutable.get(key);
     if(entry == null && this.amended) {
       synchronized(this.lock) {
-        if((entry = this.read.get(key)) == null && this.amended && this.dirty != null) {
-          entry = this.dirty.remove(key);
+        if((entry = this.immutable.get(key)) == null && this.amended) {
+          entry = this.mutable.remove(key);
           // The slow path should be avoided, even if the value does
           // not match or is present. So we mark a miss, to eventually
           // promote and take a faster path.
-          this.missLocked();
+          this.lockedMiss();
         }
       }
     }
@@ -326,48 +312,81 @@ import static java.util.Objects.requireNonNull;
 
   @Override
   @SuppressWarnings("SuspiciousMethodCalls")
-  public boolean remove(final @Nullable Object key, final @NonNull Object value) {
+  public boolean remove(final @Nullable Object key, final @NotNull Object value) {
     requireNonNull(value, "value");
-    ExpungingEntry<V> entry = this.read.get(key);
+    ExpungingValue<V> entry = this.immutable.get(key);
     if(entry == null && this.amended) {
       synchronized(this.lock) {
-        if((entry = this.read.get(key)) == null && this.amended && this.dirty != null) {
-          final boolean present = ((entry = this.dirty.get(key)) != null && entry.replace(value, null));
-          if(present) this.dirty.remove(key);
+        if((entry = this.immutable.get(key)) == null && this.amended) {
+          final boolean removed = ((entry = this.mutable.get(key)) != null && entry.update(value, null).getValue() == Operation.MODIFIED);
+          if(removed) this.mutable.remove(key);
           // The slow path should be avoided, even if the value does
           // not match or is present. So we mark a miss, to eventually
           // promote and take a faster path.
-          this.missLocked();
-          return present;
+          this.lockedMiss();
+          return removed;
         }
       }
     }
-    return entry != null && entry.replace(value, null);
+    return entry != null && entry.update(value, null).getValue() == Operation.MODIFIED;
   }
 
   @Override
-  public @Nullable V replace(final @Nullable K key, final @NonNull V value) {
+  public @Nullable V replace(final @Nullable K key, final @NotNull V value) {
     requireNonNull(value, "value");
-    final ExpungingEntry<V> entry = this.getEntry(key);
-    return entry != null ? entry.tryReplace(value) : null;
+    ExpungingValue<V> entry = this.immutable.get(key);
+    Map.Entry<V, Operation> result = entry != null ? entry.set(value) : null;
+    if(result != null && result.getValue() != Operation.EXPUNGED) return result.getKey();
+    V previousValue = null;
+    if(this.amended) {
+      synchronized(this.lock) {
+        if((entry = this.immutable.get(key)) != null) {
+          previousValue = entry.get();
+          entry.forceSet(value);
+        } else if(this.amended && (entry = this.mutable.get(key)) != null) {
+          previousValue = entry.get();
+          entry.forceSet(value);
+          // The slow path should be avoided, even if the value does
+          // not match or is present. So we mark a miss, to eventually
+          // promote and take a faster path.
+          this.lockedMiss();
+        }
+      }
+    }
+    return previousValue;
   }
 
   @Override
-  public boolean replace(final @Nullable K key, final @NonNull V oldValue, final @NonNull V newValue) {
+  public boolean replace(final @Nullable K key, final @NotNull V oldValue, final @NotNull V newValue) {
     requireNonNull(oldValue, "oldValue");
     requireNonNull(newValue, "newValue");
-    final ExpungingEntry<V> entry = this.getEntry(key);
-    return entry != null && entry.replace(oldValue, newValue);
+    ExpungingValue<V> entry = this.immutable.get(key);
+    Map.Entry<V, Operation> result = entry != null ? entry.update(oldValue, newValue) : null;
+    if(result != null && result.getValue() == Operation.MODIFIED) return true;
+    if(this.amended) {
+      synchronized(this.lock) {
+        if((entry = this.immutable.get(key)) != null) {
+          result = entry.forceUpdate(oldValue, newValue);
+        } else if(this.amended && (entry = this.mutable.get(key)) != null) {
+          result = entry.forceUpdate(oldValue, newValue);
+          // The slow path should be avoided, even if the value does
+          // not match or is present. So we mark a miss, to eventually
+          // promote and take a faster path.
+          this.lockedMiss();
+        }
+      }
+    }
+    return result != null && result.getValue() == Operation.MODIFIED;
   }
 
   // Bulk Operations
 
   @Override
-  public void forEach(final @NonNull BiConsumer<? super K, ? super V> action) {
+  public void forEach(final @NotNull BiConsumer<? super K, ? super V> action) {
     requireNonNull(action, "action");
-    this.promote();
+    final Map<K, ExpungingValue<V>> immutable = this.promote();
     V value;
-    for(final Map.Entry<K, ExpungingEntry<V>> that : this.read.entrySet()) {
+    for(final Map.Entry<K, ExpungingValue<V>> that : immutable.entrySet()) {
       if((value = that.getValue().get()) != null) {
         action.accept(that.getKey(), value);
       }
@@ -375,13 +394,28 @@ import static java.util.Objects.requireNonNull;
   }
 
   @Override
-  public void replaceAll(final @NonNull BiFunction<? super K, ? super V, ? extends V> function) {
+  public void replaceAll(final @NotNull BiFunction<? super K, ? super V, ? extends V> function) {
     requireNonNull(function, "function");
-    this.promote();
-    ExpungingEntry<V> entry; V value;
-    for(final Map.Entry<K, ExpungingEntry<V>> that : this.read.entrySet()) {
-      if((value = (entry = that.getValue()).get()) != null) {
-        entry.tryReplace(function.apply(that.getKey(), value));
+    final Map<K, ExpungingValue<V>> immutable = this.promote();
+    for(final Map.Entry<K, ExpungingValue<V>> that : immutable.entrySet()) {
+      final K key = that.getKey();
+      final V previous;
+      ExpungingValue<V> entry = that.getValue();
+      Map.Entry<V, Operation> result = entry != null ? entry.compute(key, function) : null;
+      if(result == null && this.amended) {
+        synchronized(this.lock) {
+          if((entry = this.immutable.get(key)) != null) {
+            if((previous = entry.get()) == null) continue;
+            entry.forceUpdate(previous, function.apply(key, previous));
+          } else if(this.amended && (entry = this.mutable.get(key)) != null) {
+            if((previous = entry.get()) == null) continue;
+            entry.forceUpdate(previous, function.apply(key, previous));
+            // The slow path should be avoided, even if the value does
+            // not match or is present. So we mark a miss, to eventually
+            // promote and take a faster path.
+            this.lockedMiss();
+          }
+        }
       }
     }
   }
@@ -389,9 +423,9 @@ import static java.util.Objects.requireNonNull;
   @Override
   public void clear() {
     synchronized(this.lock) {
-      this.read = this.function.apply(this.read.size());
-      this.dirty = null;
       this.amended = false;
+      this.immutable = this.function.apply(this.immutable.size());
+      this.mutable = null;
       this.misses = 0;
     }
   }
@@ -399,233 +433,51 @@ import static java.util.Objects.requireNonNull;
   // Views
 
   @Override
-  public @NonNull Set<Entry<K, V>> entrySet() {
+  public @NotNull Set<Entry<K, V>> entrySet() {
     if(this.entrySet != null) return this.entrySet;
-    return this.entrySet = new EntrySetView();
+    return this.entrySet = new EntrySet();
   }
 
-  private void promote() {
+  private Map<K, ExpungingValue<V>> promote() {
+    Map<K, ExpungingValue<V>> map = this.immutable;
     if(this.amended) {
       synchronized(this.lock) {
         if(this.amended) {
-          this.promoteLocked();
+          this.lockedPromote();
+          map = this.immutable;
         }
       }
     }
+    return map;
   }
 
-  private void missLocked() {
-    this.misses++;
-    if(this.misses < this.dirty.size()) return;
-    this.promoteLocked();
+  private void lockedMiss() {
+    if(++this.misses < this.mutable.size()) return;
+    this.lockedPromote();
   }
 
-  private void promoteLocked() {
-    this.read = this.dirty;
+  private void lockedPromote() {
     this.amended = false;
-    this.dirty = null;
+    this.immutable = this.mutable;
+    this.mutable = null;
     this.misses = 0;
   }
 
-  private void dirtyLocked() {
-    if(this.dirty != null) return;
-    this.dirty = this.function.apply(this.read.size());
-    for(final Map.Entry<K, ExpungingEntry<V>> entry : this.read.entrySet()) {
-      if(!entry.getValue().tryExpunge()) {
-        this.dirty.put(entry.getKey(), entry.getValue());
-      }
-    }
+  private void lockedDirty() {
+    this.mutable = this.function.apply(this.immutable.size() + 1);
+    this.immutable.forEach((key, value) -> {
+      if(!value.expunge()) this.mutable.put(key, value);
+    });
+    this.amended = true;
   }
 
-  @SuppressWarnings({"rawtypes", "unchecked"})
-  /* package */ static final class ExpungingEntryImpl<V> implements ExpungingEntry<V> {
-    private static final AtomicReferenceFieldUpdater<ExpungingEntryImpl, Object> UPDATER = AtomicReferenceFieldUpdater
-      .newUpdater(ExpungingEntryImpl.class, Object.class, "value");
-    private static final Object EXPUNGED = new Object();
-    private volatile Object value;
-
-    /* package */ ExpungingEntryImpl(final @NonNull V value) {
-      this.value = value;
-    }
-
-    @Override
-    public boolean exists() {
-      return this.value != null && this.value != ExpungingEntryImpl.EXPUNGED;
-    }
-
-    @Override
-    public @Nullable V get() {
-      return this.value == ExpungingEntryImpl.EXPUNGED ? null : (V) this.value;
-    }
-
-    @Override
-    public @NonNull V getOr(final @NonNull V other) {
-      final Object value = this.value;
-      return value != null && value != ExpungingEntryImpl.EXPUNGED ? (V) this.value : other;
-    }
-
-    @Override
-    public @NonNull InsertionResult<V> setIfAbsent(final @NonNull V value) {
-      for(; ; ) {
-        final Object previous = this.value;
-        if(previous == ExpungingEntryImpl.EXPUNGED) return new InsertionResultImpl<>(InsertionResultImpl.EXPUNGED, null, null);
-        if(previous != null) return new InsertionResultImpl<>(InsertionResultImpl.UNCHANGED, (V) previous, (V) previous);
-        if(ExpungingEntryImpl.UPDATER.compareAndSet(this, null, value)) {
-          return new InsertionResultImpl<>(InsertionResultImpl.UPDATED, null, value);
-        }
-      }
-    }
-
-    @Override
-    public <K> @NonNull InsertionResult<V> computeIfAbsent(final @Nullable K key, final @NonNull Function<? super K, ? extends V> function) {
-      V next = null;
-      for(; ; ) {
-        final Object previous = this.value;
-        if(previous == ExpungingEntryImpl.EXPUNGED) return new InsertionResultImpl<>(InsertionResultImpl.EXPUNGED, null, null);
-        if(previous != null) return new InsertionResultImpl<>(InsertionResultImpl.UNCHANGED, (V) previous, (V) previous);
-        if(ExpungingEntryImpl.UPDATER.compareAndSet(this, null, next != null ? next : (next = function.apply(key)))) {
-          return new InsertionResultImpl<>(InsertionResultImpl.UPDATED, null, next);
-        }
-      }
-    }
-
-    @Override
-    public <K> @NonNull InsertionResult<V> computeIfPresent(final @Nullable K key, final @NonNull BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
-      V next = null;
-      for(; ; ) {
-        final Object previous = this.value;
-        if(previous == ExpungingEntryImpl.EXPUNGED) return new InsertionResultImpl<>(InsertionResultImpl.EXPUNGED, null, null);
-        if(previous == null) return new InsertionResultImpl<>(InsertionResultImpl.UNCHANGED, null, null);
-        if(ExpungingEntryImpl.UPDATER.compareAndSet(this, previous, next != null ? next : (next = remappingFunction.apply(key, (V) previous)))) {
-          return new InsertionResultImpl<>(InsertionResultImpl.UPDATED, (V) previous, next);
-        }
-      }
-    }
-
-    @Override
-    public <K> @NonNull InsertionResult<V> compute(final @Nullable K key, final @NonNull BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
-      V next = null;
-      for(; ; ) {
-        final Object previous = this.value;
-        if(previous == ExpungingEntryImpl.EXPUNGED) return new InsertionResultImpl<>(InsertionResultImpl.EXPUNGED, null, null);
-        if(ExpungingEntryImpl.UPDATER.compareAndSet(this, previous, next != null ? next : (next = remappingFunction.apply(key, (V) previous)))) {
-          return new InsertionResultImpl<>(InsertionResultImpl.UPDATED, (V) previous, next);
-        }
-      }
-    }
-
-    @Override
-    public void set(final @NonNull V value) {
-      ExpungingEntryImpl.UPDATER.set(this, value);
-    }
-
-    @Override
-    public boolean replace(final @NonNull Object compare, final @Nullable V value) {
-      for(; ; ) {
-        final Object previous = this.value;
-        if(previous == ExpungingEntryImpl.EXPUNGED || !Objects.equals(previous, compare)) return false;
-        if(ExpungingEntryImpl.UPDATER.compareAndSet(this, previous, value)) return true;
-      }
-    }
-
-    @Override
-    public @Nullable V clear() {
-      for(; ; ) {
-        final Object previous = this.value;
-        if(previous == null || previous == ExpungingEntryImpl.EXPUNGED) return null;
-        if(ExpungingEntryImpl.UPDATER.compareAndSet(this, previous, null)) return (V) previous;
-      }
-    }
-
-    @Override
-    public boolean trySet(final @NonNull V value) {
-      for(; ; ) {
-        final Object previous = this.value;
-        if(previous == ExpungingEntryImpl.EXPUNGED) return false;
-        if(ExpungingEntryImpl.UPDATER.compareAndSet(this, previous, value)) return true;
-      }
-    }
-
-    @Override
-    public @Nullable V tryReplace(final @NonNull V value) {
-      for(; ; ) {
-        final Object previous = this.value;
-        if(previous == null || previous == ExpungingEntryImpl.EXPUNGED) return null;
-        if(ExpungingEntryImpl.UPDATER.compareAndSet(this, previous, value)) return (V) previous;
-      }
-    }
-
-    @Override
-    public boolean tryExpunge() {
-      while(this.value == null) {
-        if(ExpungingEntryImpl.UPDATER.compareAndSet(this, null, ExpungingEntryImpl.EXPUNGED)) return true;
-      }
-      return this.value == ExpungingEntryImpl.EXPUNGED;
-    }
-
-    @Override
-    public boolean tryUnexpungeAndSet(final @NonNull V value) {
-      return ExpungingEntryImpl.UPDATER.compareAndSet(this, ExpungingEntryImpl.EXPUNGED, value);
-    }
-
-    @Override
-    public <K> boolean tryUnexpungeAndCompute(final @Nullable K key, final @NonNull Function<? super K, ? extends V> function) {
-      if(this.value == ExpungingEntryImpl.EXPUNGED) {
-        final Object value = function.apply(key);
-        return ExpungingEntryImpl.UPDATER.compareAndSet(this, ExpungingEntryImpl.EXPUNGED, value);
-      }
-      return false;
-    }
-
-    @Override
-    public <K> boolean tryUnexpungeAndCompute(final @Nullable K key, final @NonNull BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
-      if(this.value == ExpungingEntryImpl.EXPUNGED) {
-        final Object value = remappingFunction.apply(key, null);
-        return ExpungingEntryImpl.UPDATER.compareAndSet(this, ExpungingEntryImpl.EXPUNGED, value);
-      }
-      return false;
-    }
-  }
-
-  /* package */ static final class InsertionResultImpl<V> implements InsertionResult<V> {
-    private static final byte UNCHANGED = 0x00;
-    private static final byte UPDATED = 0x01;
-    private static final byte EXPUNGED = 0x02;
-
-    private final byte operation;
-    private final V previous;
-    private final V current;
-
-    /* package */ InsertionResultImpl(final byte operation, final @Nullable V previous, final @Nullable V current) {
-      this.operation = operation;
-      this.previous = previous;
-      this.current = current;
-    }
-
-    @Override
-    public byte operation() {
-      return this.operation;
-    }
-
-    @Override
-    public @Nullable V previous() {
-      return this.previous;
-    }
-
-    @Override
-    public @Nullable V current() {
-      return this.current;
-    }
-  }
-
-  /* package */ final class MapEntry implements Map.Entry<K, V> {
+  /* package */ final class EntryImpl implements Map.Entry<K, V> {
     private final K key;
-    private V value;
 
-    /* package */ MapEntry(final @Nullable K key, final @NonNull V value) {
+    /* package */ EntryImpl(final @Nullable K key) {
       this.key = key;
-      this.value = value;
     }
+
 
     @Override
     public @Nullable K getKey() {
@@ -633,21 +485,18 @@ import static java.util.Objects.requireNonNull;
     }
 
     @Override
-    public @NonNull V getValue() {
-      return this.value;
+    public @Nullable V getValue() {
+      return ForwardingSyncMapImpl.this.get(this.key);
     }
 
     @Override
-    public @Nullable V setValue(final @NonNull V value) {
-      requireNonNull(value, "value");
-      final V previous = ForwardingSyncMapImpl.this.put(this.key, value);
-      this.value = value;
-      return previous;
+    public @Nullable V setValue(final @NotNull V value) {
+      return ForwardingSyncMapImpl.this.replace(this.key, value);
     }
 
     @Override
-    public @NonNull String toString() {
-      return "SyncMapImpl.MapEntry{key=" + this.getKey() + ", value=" + this.getValue() + "}";
+    public int hashCode() {
+      return Objects.hash(this.getKey(), this.getValue());
     }
 
     @Override
@@ -660,27 +509,27 @@ import static java.util.Objects.requireNonNull;
     }
 
     @Override
-    public int hashCode() {
-      return Objects.hash(this.getKey(), this.getValue());
+    public String toString() {
+      return "EntryImpl{key=" + this.getKey() + ", value=" + this.getValue() + "}";
     }
   }
 
-  /* package */ final class EntrySetView extends AbstractSet<Map.Entry<K, V>> {
+  /* package */ final class EntrySet extends AbstractSet<Map.Entry<K, V>> {
     @Override
     public int size() {
       return ForwardingSyncMapImpl.this.size();
     }
 
     @Override
-    public boolean contains(final @Nullable Object entry) {
-      if(!(entry instanceof Map.Entry)) return false;
-      final Map.Entry<?, ?> mapEntry = (Entry<?, ?>) entry;
+    public boolean contains(final @Nullable Object other) {
+      if(!(other instanceof Map.Entry)) return false;
+      final Map.Entry<?, ?> mapEntry = (Entry<?, ?>) other;
       final V value = ForwardingSyncMapImpl.this.get(mapEntry.getKey());
       return value != null && Objects.equals(value, mapEntry.getValue());
     }
 
     @Override
-    public boolean add(final @NonNull Entry<K, V> entry) {
+    public boolean add(final @NotNull Entry<K, V> entry) {
       requireNonNull(entry, "entry");
       return ForwardingSyncMapImpl.this.put(entry.getKey(), entry.getValue()) == null;
     }
@@ -698,18 +547,17 @@ import static java.util.Objects.requireNonNull;
     }
 
     @Override
-    public @NonNull Iterator<Map.Entry<K, V>> iterator() {
-      ForwardingSyncMapImpl.this.promote();
-      return new EntryIterator(ForwardingSyncMapImpl.this.read.entrySet().iterator());
+    public @NotNull Iterator<Entry<K, V>> iterator() {
+      return new EntryIterator(ForwardingSyncMapImpl.this.promote().entrySet().iterator());
     }
   }
 
   /* package */ final class EntryIterator implements Iterator<Map.Entry<K, V>> {
-    private final Iterator<Map.Entry<K, ExpungingEntry<V>>> backingIterator;
+    private final Iterator<Map.Entry<K, ExpungingValue<V>>> backingIterator;
     private Map.Entry<K, V> next;
     private Map.Entry<K, V> current;
 
-    /* package */ EntryIterator(final @NonNull Iterator<Map.Entry<K, ExpungingEntry<V>>> backingIterator) {
+    /* package */ EntryIterator(final @NotNull Iterator<Map.Entry<K, ExpungingValue<V>>> backingIterator) {
       this.backingIterator = backingIterator;
       this.advance();
     }
@@ -720,28 +568,25 @@ import static java.util.Objects.requireNonNull;
     }
 
     @Override
-    public Map.@NonNull Entry<K, V> next() {
-      final Map.Entry<K, V> current;
-      if((current = this.next) == null) throw new NoSuchElementException();
-      this.current = current;
+    public @NotNull Entry<K, V> next() {
+      if((this.current = this.next) == null) throw new NoSuchElementException();
       this.advance();
-      return current;
+      return this.current;
     }
 
     @Override
     public void remove() {
-      final Map.Entry<K, V> current;
-      if((current = this.current) == null) throw new IllegalStateException();
+      if(this.current == null) throw new IllegalStateException();
+      ForwardingSyncMapImpl.this.remove(this.current.getKey());
       this.current = null;
-      ForwardingSyncMapImpl.this.remove(current.getKey());
     }
 
     private void advance() {
       this.next = null;
       while(this.backingIterator.hasNext()) {
-        final Map.Entry<K, ExpungingEntry<V>> entry; final V value;
-        if((value = (entry = this.backingIterator.next()).getValue().get()) != null) {
-          this.next = new MapEntry(entry.getKey(), value);
+        final Map.Entry<K, ExpungingValue<V>> entry;
+        if(!(entry = this.backingIterator.next()).getValue().empty()) {
+          this.next = new EntryImpl(entry.getKey());
           return;
         }
       }

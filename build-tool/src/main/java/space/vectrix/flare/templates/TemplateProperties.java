@@ -33,6 +33,7 @@ import org.gradle.api.provider.MapProperty;
 import javax.inject.Inject;
 
 public class TemplateProperties {
+
   private final MapProperty<String, Object> properties;
 
   @Inject
@@ -48,4 +49,5 @@ public class TemplateProperties {
   public void properties(final Action<MapProperty<String, Object>> action) {
     Configurable.configure(this.properties, action);
   }
+
 }

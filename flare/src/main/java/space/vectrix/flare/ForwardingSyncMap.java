@@ -24,8 +24,8 @@
  */
 package space.vectrix.flare;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -33,14 +33,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 import java.util.function.IntFunction;
 
 /**
  * A concurrent map, internally backed by a non-thread-safe map but carefully
  * managed in a matter such that any changes are thread-safe. Internally, the
- * map is split into a {@code read} and a {@code dirty} map. The read map only
- * satisfies read requests, while the dirty map satisfies all other requests.
+ * map is split into an {@code immutable} and {@code mutable} map. The
+ * immutable map only satisfies read requests, while the mutable map satisfies
+ * all other requests.
  *
  * <p>The map is optimized for two common use cases:</p>
  *
@@ -48,18 +48,19 @@ import java.util.function.IntFunction;
  *     <li>The entry for the given map is only written once but read many
  *         times, as in a cache that only grows.</li>
  *
- *     <li>Heavy concurrent modification of entries for a disjoint set of
+ *     <li>Heavy concurrent modification of entries over a disjoint set of
  *         keys.</li>
  * </ul>
  *
  * <p>In both cases, this map significantly reduces lock contention compared
- * to a traditional map paired with a read and write lock, along with maps with
- * an exclusive lock (such as using {@link Collections#synchronizedMap(Map)}.</p>
+ * to a traditional map paired with a read and write lock, along with maps
+ * with an exclusive lock (such as using
+ * {@link Collections#synchronizedMap(Map)}).</p>
  *
- * <p>Null values are not accepted. Null keys are supported if the backing collection
- * supports them.</p>
+ * <p>Null values are not accepted. Null keys are supported if the backing
+ * collection supports them.</p>
  *
- * <p>Based on: https://golang.org/src/sync/map.go</p>
+ * <p>Based on: <a href="https://go.dev/src/sync/map.go">sync/map.go</a></p>
  *
  * @param <K> the key type
  * @param <V> the value type
@@ -67,7 +68,7 @@ import java.util.function.IntFunction;
  */
 public interface ForwardingSyncMap<K, V> extends ConcurrentMap<K, V> {
   /**
-   * Returns a new forwarding sync map, backed by a {@link HashMap}.
+   * Returns a new sync map, backed by a {@link HashMap}.
    *
    * @param <K> the key type
    * @param <V> the value type
@@ -75,13 +76,13 @@ public interface ForwardingSyncMap<K, V> extends ConcurrentMap<K, V> {
    * @since 0.1.0
    */
   @SuppressWarnings("RedundantTypeArguments")
-  static <K, V> @NonNull ForwardingSyncMap<K, V> hashmap() {
-    return of(HashMap<K, ExpungingEntry<V>>::new, 16);
+  static <K, V> @NotNull ForwardingSyncMap<K, V> hashmap() {
+    return of(HashMap<K, ForwardingSyncMap.ExpungingValue<V>>::new, 16);
   }
 
   /**
-   * Returns a new forwarding sync map, backed by a {@link HashMap} with a
-   * provided initial capacity.
+   * Returns a new sync map, backed by a {@link HashMap} with a provided
+   * initial capacity.
    *
    * @param initialCapacity the initial capacity of the hash map
    * @param <K> the key type
@@ -90,26 +91,25 @@ public interface ForwardingSyncMap<K, V> extends ConcurrentMap<K, V> {
    * @since 0.1.0
    */
   @SuppressWarnings("RedundantTypeArguments")
-  static <K, V> @NonNull ForwardingSyncMap<K, V> hashmap(final int initialCapacity) {
-    return of(HashMap<K, ExpungingEntry<V>>::new, initialCapacity);
+  static <K, V> @NotNull ForwardingSyncMap<K, V> hashmap(final int initialCapacity) {
+    return of(HashMap<K, ForwardingSyncMap.ExpungingValue<V>>::new, initialCapacity);
   }
 
   /**
-   * Returns a new mutable set view of a forwarding sync map, backed by a
-   * {@link HashMap}.
+   * Returns a new mutable set view of a sync map, backed by a {@link HashMap}.
    *
    * @param <K> the key type
    * @return a mutable set view of a sync map
    * @since 0.1.0
    */
   @SuppressWarnings("RedundantTypeArguments")
-  static <K> @NonNull Set<K> hashset() {
-    return setOf(HashMap<K, ExpungingEntry<Boolean>>::new, 16);
+  static <K> @NotNull Set<K> hashset() {
+    return setOf(HashMap<K, ForwardingSyncMap.ExpungingValue<Boolean>>::new, 16);
   }
 
   /**
-   * Returns a new mutable set view of a forwarding sync map, backed by a
-   * {@link HashMap} with a provided initial capacity.
+   * Returns a new mutable set view of a sync map, backed by a {@link HashMap}
+   * with a provided initial capacity.
    *
    * @param initialCapacity the initial capacity of the hash map
    * @param <K> the key type
@@ -117,13 +117,13 @@ public interface ForwardingSyncMap<K, V> extends ConcurrentMap<K, V> {
    * @since 0.1.0
    */
   @SuppressWarnings("RedundantTypeArguments")
-  static <K> @NonNull Set<K> hashset(final int initialCapacity) {
-    return setOf(HashMap<K, ExpungingEntry<Boolean>>::new, initialCapacity);
+  static <K> @NotNull Set<K> hashset(final int initialCapacity) {
+    return setOf(HashMap<K, ForwardingSyncMap.ExpungingValue<Boolean>>::new, initialCapacity);
   }
 
   /**
-   * Returns a new forwarding sync map, backed by the provided {@link Map}
-   * implementation with a provided initial capacity.
+   * Returns a new sync map, backed by the provided {@link Map} implementation
+   * with a provided initial capacity.
    *
    * @param function the map creation function
    * @param initialCapacity the map initial capacity
@@ -132,13 +132,13 @@ public interface ForwardingSyncMap<K, V> extends ConcurrentMap<K, V> {
    * @return a sync map
    * @since 0.2.0
    */
-  static <K, V> @NonNull ForwardingSyncMap<K, V> of(final @NonNull IntFunction<Map<K, ExpungingEntry<V>>> function, final int initialCapacity) {
+  static <K, V> @NotNull ForwardingSyncMap<K, V> of(final @NotNull IntFunction<Map<K, ForwardingSyncMap.ExpungingValue<V>>> function, final int initialCapacity) {
     return new ForwardingSyncMapImpl<>(function, initialCapacity);
   }
 
   /**
-   * Returns a new mutable set view of a forwarding sync map, backed by the
-   * provided {@link Map} implementation with a provided initial capacity.
+   * Returns a new mutable set view of a sync map, backed by the provided
+   * {@link Map} implementation with a provided initial capacity.
    *
    * @param function the map creation function
    * @param initialCapacity the map initial capacity
@@ -146,23 +146,9 @@ public interface ForwardingSyncMap<K, V> extends ConcurrentMap<K, V> {
    * @return a mutable set view of a sync map
    * @since 0.2.0
    */
-  static <K> @NonNull Set<K> setOf(final @NonNull IntFunction<Map<K, ExpungingEntry<Boolean>>> function, final int initialCapacity) {
+  static <K> @NotNull Set<K> setOf(final @NotNull IntFunction<Map<K, ForwardingSyncMap.ExpungingValue<Boolean>>> function, final int initialCapacity) {
     return Collections.newSetFromMap(new ForwardingSyncMapImpl<>(function, initialCapacity));
   }
-
-  /**
-   * {@inheritDoc}
-   *
-   * Iterations over a forwarding sync map are thread-safe, and the keys
-   * iterated over will not change for a single iteration attempt, however
-   * they may not necessarily reflect the state of the map at the time the
-   * iterator was created.
-   *
-   * <p>Performance Note: If entries have been appended to the map, iterating
-   * over the entry set will automatically promote them to the read map.</p>
-   */
-  @Override
-  @NonNull Set<Entry<K, V>> entrySet();
 
   /**
    * {@inheritDoc}
@@ -180,13 +166,53 @@ public interface ForwardingSyncMap<K, V> extends ConcurrentMap<K, V> {
   /**
    * {@inheritDoc}
    *
+   * The remapping function may be called more than once to avoid locking if
+   * it is not necessary.
+   *
+   * @param key key with which the specified value is to be associated
+   * @param remappingFunction the remapping function to compute a value
+   * @return the new value associated with the specified key, or null if none
+   */
+  @Override
+  @Nullable V computeIfPresent(final @Nullable K key, final @NotNull BiFunction<? super K, ? super V, ? extends V> remappingFunction);
+
+  /**
+   * {@inheritDoc}
+   *
+   * The remapping function may be called more than once to avoid locking if
+   * it is not necessary.
+   *
+   * @param key key with which the specified value is to be associated
+   * @param remappingFunction the remapping function to compute a value
+   * @return the new value associated with the specified key, or null if none
+   */
+  @Override
+  @Nullable V compute(final @Nullable K key, final @NotNull BiFunction<? super K, ? super V, ? extends V> remappingFunction);
+
+  /**
+   * {@inheritDoc}
+   *
    * This method clears the map by resetting the internal state to a state
    * similar to as if a new map had been created. If there are concurrent
-   * iterations in progress, they will reflect the state of the map prior
-   * to being cleared.
+   * iterations in progress, they will reflect the state of the map prior to
+   * being cleared.
    */
   @Override
   void clear();
+
+  /**
+   * {@inheritDoc}
+   *
+   * Iterations over a sync map are thread-safe, and the keys iterated over
+   * will not change for a single iteration attempt, however they may not
+   * necessarily reflect the state of the map at the time the iterator was
+   * created.
+   *
+   * <p>Performance Note: If entries have been appended to the map, iterating
+   * over the entry set will automatically promote them to the read map.</p>
+   */
+  @Override
+  @NotNull Set<Entry<K, V>> entrySet();
 
   /**
    * The expunging entry the backing map wraps for its values.
@@ -194,16 +220,15 @@ public interface ForwardingSyncMap<K, V> extends ConcurrentMap<K, V> {
    * @param <V> the value type
    * @since 2.0.0
    */
-  interface ExpungingEntry<V> {
+  interface ExpungingValue<V> {
     /**
-     * Returns {@code true} if this entry has a value, that is
-     * neither {@code null} or expunged. Otherwise, it returns
-     * {@code false}.
+     * Returns {@code true} if this entry has been expunged or is {@code null}.
+     * Otherwise, it returns {@code false}.
      *
-     * @return true if a value exists, otherwise false
-     * @since 2.0.0
+     * @return true if the value does not exist, otherwise false
+     * @since 2.1.0
      */
-    boolean exists();
+    boolean empty();
 
     /**
      * Returns the value or {@code null} if it has been expunged.
@@ -214,185 +239,154 @@ public interface ForwardingSyncMap<K, V> extends ConcurrentMap<K, V> {
     @Nullable V get();
 
     /**
-     * Returns the value if it exists, otherwise it returns the
-     * default value.
+     * Returns the value if it exists, otherwise it returns the default value.
      *
-     * @param other the default value
+     * @param defaultValue the default value
      * @return the value if present, otherwise the default value
-     * @since 2.0.0
+     * @since 2.1.0
      */
-    @NonNull V getOr(final @NonNull V other);
+    @NotNull V getOrDefault(final @NotNull V defaultValue);
 
     /**
-     * Sets the specified value if a value doesn't already exist,
-     * returning an {@link InsertionResult}.
+     * Attempts to set the value, if the value is not expunged and returns the
+     * previous value. Otherwise, it returns {@code null}.
      *
      * @param value the value
-     * @return the result entry
-     * @since 2.0.0
+     * @return the previous value if it exists, otherwise null
+     * @since 3.0.0
      */
-    @NonNull InsertionResult<V> setIfAbsent(final @NonNull V value);
+    Map.@NotNull Entry<V, ForwardingSyncMap.Operation> set(final @NotNull V value);
 
     /**
-     * Computes the specified value if a value doesn't already exist,
-     * returning an {@link InsertionResult}.
+     * Attempts to update the value, if the value is not expunged and is equal
+     * to the provided {@code compare} object, returning the previous value and
+     * the {@link ForwardingSyncMap.Operation}.
+     *
+     * @param compare the object to compare to
+     * @param next the value to store
+     * @return the previous value or null and the operation
+     * @since 3.0.0
+     */
+    Map.@NotNull Entry<V, ForwardingSyncMap.Operation> update(final @Nullable Object compare, final @Nullable V next);
+
+    /**
+     * Attempts to update the value, if the value is not expunged and is equal
+     * to the provided {@code compare} object, returning the next value and
+     * the {@link ForwardingSyncMap.Operation}.
+     *
+     * @param compare the object to compare to
+     * @param next the value to store
+     * @return the next value or null and the operation
+     * @since 3.0.0
+     */
+    Map.@NotNull Entry<V, ForwardingSyncMap.Operation> updateAbsent(final @Nullable Object compare, final @Nullable V next);
+
+    /**
+     * Attempts to compute the value in the provided {@link BiFunction} and
+     * store it returning the next value and the
+     * {@link ForwardingSyncMap.Operation}.
      *
      * @param key the key
-     * @param function the function
+     * @param remappingFunction the remapping function
      * @param <K> the key type
-     * @return the result entry
-     * @since 2.0.0
+     * @return the next value or null and the operation
+     * @since 3.0.0
      */
-    <K> @NonNull InsertionResult<V> computeIfAbsent(final @Nullable K key, final @NonNull Function<? super K, ? extends V> function);
+    <K> Map.@NotNull Entry<V, ForwardingSyncMap.Operation> compute(final @Nullable K key, final @NotNull BiFunction<? super K, ? super V, ? extends V> remappingFunction);
 
     /**
-     * Computes the specified value if a value already exists, returning
-     * an {@link InsertionResult}.
+     * Attempts to compute the value in the provided {@link BiFunction} and
+     * store it if the value is not expunged returning the next value and
+     * the {@link ForwardingSyncMap.Operation}.
      *
      * @param key the key
-     * @param remappingFunction the function
+     * @param remappingFunction the remapping function
      * @param <K> the key type
-     * @return the result entry
-     * @since 2.0.0
+     * @return the next value or null and the operation
+     * @since 3.0.0
      */
-    <K> @NonNull InsertionResult<V> computeIfPresent(final @Nullable K key, final @NonNull BiFunction<? super K, ? super V, ? extends V> remappingFunction);
+    <K> Map.@NotNull Entry<V, ForwardingSyncMap.Operation> computePresent(final @Nullable K key, final @NotNull BiFunction<? super K, ? super V, ? extends V> remappingFunction);
 
     /**
-     * Computes the specified value, returning an {@link InsertionResult}.
+     * Updates the value, if the value is equal to the provided {@code compare}
+     * object, returning the previous value and the
+     * {@link ForwardingSyncMap.Operation}.
      *
-     * @param key the key
-     * @param remappingFunction the function
-     * @param <K> the key type
-     * @return the result entry
-     * @since 2.0.0
+     * @param compare the object to compare to
+     * @param next the value to store
+     * @return the previous value and the operation
+     * @since 3.0.0
      */
-    <K> @NonNull InsertionResult<V> compute(final @Nullable K key, final @NonNull BiFunction<? super K, ? super V, ? extends V> remappingFunction);
+    Map.@NotNull Entry<V, ForwardingSyncMap.Operation> forceUpdate(final @Nullable Object compare, final @Nullable V next);
 
     /**
-     * Sets the value.
+     * Updates the value, if the value is equal to the provided {@code compare}
+     * object, returning the next value and the
+     * {@link ForwardingSyncMap.Operation}.
      *
-     * @param value the value
-     * @since 2.0.0
+     * @param compare the object to compare to
+     * @param next the value to store
+     * @return the next value and the operation
+     * @since 3.0.0
      */
-    void set(final @NonNull V value);
+    Map.@NotNull Entry<V, ForwardingSyncMap.Operation> forceUpdateAbsent(final @Nullable Object compare, final @Nullable V next);
 
     /**
-     * Replaces the current value if it matches {@code compare}
-     * with the new {@code value} and returns {@code true}. Otherwise,
-     * it returns {@code false}.
+     * Clears and returns the previous value.
      *
-     * @param compare The comparing value
-     * @param value The new value
-     * @return true if the value was replaced, otherwise false
-     * @since 2.0.0
-     */
-    boolean replace(final @NonNull Object compare, final @Nullable V value);
-
-    /**
-     * Clears the value.
-     *
-     * @return the value
+     * @return the previous
      * @since 2.0.0
      */
     @Nullable V clear();
 
     /**
-     * Attempts to set the value, if the value is not expunged
-     * and returns {@code true}. Otherwise, it returns {@code false}.
+     * Attempts to unexpunge the value and store the provided value, returning
+     * {@code true} if successful, otherwise returns {@code false}.
      *
-     * @return true if the value was set, otherwise false
-     * @since 2.0.0
+     * @param value the value to store
+     * @return true if unexpunged, otherwise false
+     * @since 3.0.0
      */
-    boolean trySet(final @NonNull V value);
+    boolean unexpunge(final @Nullable V value);
 
     /**
-     * Attempts to replace the value, if the value is not expunged or
-     * {@code null} and returns the previous value. Otherwise, it returns
-     * {@code null}.
+     * Attempts to expunge the value and returns {@code true},
+     * otherwise returns {@code false}.
      *
-     * @param value the value
-     * @return the previous value if it exists, otherwise null
-     * @since 2.0.0
+     * @return true if expunged, otherwise false
+     * @since 3.0.0
      */
-    @Nullable V tryReplace(final @NonNull V value);
+    boolean expunge();
 
     /**
-     * Attempts to expunge the value, if the value is
-     * {@code null} and returns {@code true}. Otherwise, it returns
-     * {@code false}.
+     * Attempts to update the value with {@code update}, if the value is not
+     * expunged and is equal to the provided {@code compare} object, returning
+     * {@code true}. Otherwise returns {@code false}.
      *
-     * @return true if the value was expunged, otherwise false
-     * @since 2.0.0
+     * @param compare the object to compare to
+     * @param update the value to store
+     * @return true if updated, otherwise false
+     * @since 3.0.0
      */
-    boolean tryExpunge();
+    boolean compareAndSet(final @Nullable Object compare, final @Nullable Object update);
 
     /**
-     * Attempts to unexpunge the value and set it, if the value
-     * was expunged and returns {@code true}. Otherwise, it returns
-     * {@code false}.
+     * Stores the provided value.
      *
-     * @param value the value
-     * @return true if the value was unexpunged, otherwise false
-     * @since 2.0.0
+     * @param value the value to store
+     * @since 3.0.0
      */
-    boolean tryUnexpungeAndSet(final @NonNull V value);
-
-    /**
-     * Attempts to unexpunge the value and compute it, if the value
-     * was expunged and returns {@code true}. Otherwise, it returns
-     * {@code false}.
-     *
-     * @param key the key
-     * @param function the function
-     * @param <K> the key type
-     * @return true if the value was unexpunged, otherwise false
-     * @since 2.0.0
-     */
-    <K> boolean tryUnexpungeAndCompute(final @Nullable K key, final @NonNull Function<? super K, ? extends V> function);
-
-    /**
-     * Attempts to unexpunge the value and compute it, if the value
-     * was expunged and returns {@code true}. Otherwise, it returns
-     * {@code false}.
-     *
-     * @param key the key
-     * @param remappingFunction the remapping function
-     * @param <K> the key type
-     * @return true if the value was unexpunged, otherwise false
-     * @since 2.0.0
-     */
-    <K> boolean tryUnexpungeAndCompute(final @Nullable K key, final @NonNull BiFunction<? super K, ? super V, ? extends V> remappingFunction);
+    void forceSet(final @Nullable Object value);
   }
 
   /**
-   * The insertion result.
+   * The operation result.
    *
-   * @param <V> the value type
-   * @since 2.0.0
+   * @since 3.0.0
    */
-  interface InsertionResult<V> {
-    /**
-     * The operation result.
-     *
-     * @return the operation
-     * @since 2.0.0
-     */
-    byte operation();
-
-    /**
-     * The previous value.
-     *
-     * @return the input
-     * @since 2.0.0
-     */
-    @Nullable V previous();
-
-    /**
-     * The current value.
-     *
-     * @return the output
-     * @since 2.0.0
-     */
-    @Nullable V current();
+  enum Operation {
+    MODIFIED,
+    UNMODIFIED,
+    EXPUNGED
   }
 }

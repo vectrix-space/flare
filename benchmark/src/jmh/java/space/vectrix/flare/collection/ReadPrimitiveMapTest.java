@@ -16,7 +16,6 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
-import space.vectrix.flare.fastutil.Int2ObjectSyncMap;
 
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
@@ -42,16 +41,14 @@ public class ReadPrimitiveMapTest {
     if("SynchronizedMap".equalsIgnoreCase(this.implementation)) {
       this.map = Int2ObjectMaps.synchronize(new Int2ObjectOpenHashMap<>(ReadPrimitiveMapTest.size));
     } else if("SyncMap".equalsIgnoreCase(this.implementation)) {
-      this.map = Int2ObjectSyncMap.hashmap(ReadPrimitiveMapTest.size);
+      this.map = Byte2ObjectSyncMap.hashmap(ReadPrimitiveMapTest.size);
     }
 
     for(int i = 0; i < ReadPrimitiveMapTest.size; i++) {
       this.map.put(i, String.valueOf(i));
     }
 
-    for(int i = 0; i < ReadPrimitiveMapTest.size; i++) {
-      this.map.get(i);
-    }
+    if(this.map.isEmpty()) throw new IllegalStateException("Map is empty!");
   }
 
   @Benchmark

@@ -1,4 +1,4 @@
-rootProject.name = "flare-build-tool"
+rootProject.name = "flare-build-logic"
 
 dependencyResolutionManagement {
   repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)

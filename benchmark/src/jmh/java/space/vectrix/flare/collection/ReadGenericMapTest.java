@@ -53,10 +53,7 @@ public class ReadGenericMapTest {
       this.map.put(key, i);
     }
 
-    for(int i = 0; i < ReadGenericMapTest.size; i++) {
-      final String key = String.valueOf(i);
-      this.map.get(key);
-    }
+    if(this.map.isEmpty()) throw new IllegalStateException("Map is empty!");
   }
 
   @Benchmark

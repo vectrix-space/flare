@@ -31,7 +31,6 @@ import com.mitchellbosecke.pebble.loader.FileLoader;
 import com.mitchellbosecke.pebble.loader.Loader;
 import com.mitchellbosecke.pebble.template.PebbleTemplate;
 import net.kyori.mammoth.Properties;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.InvalidUserDataException;
 import org.gradle.api.file.DirectoryProperty;
@@ -41,6 +40,7 @@ import org.gradle.api.tasks.Nested;
 import org.gradle.api.tasks.Optional;
 import org.gradle.api.tasks.OutputDirectory;
 import org.gradle.api.tasks.TaskAction;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -58,6 +58,7 @@ import java.util.Map;
 import java.util.Set;
 
 public abstract class GenerateTemplates extends DefaultTask {
+
   private static final String FILE_NAME_CACHE_DISAMBIGUATOR = "###";
   private static final String PEBBLE_EXTENSION = ".peb";
 
@@ -159,4 +160,5 @@ public abstract class GenerateTemplates extends DefaultTask {
     template.evaluate(writer, data);
     return writer.toString();
   }
+
 }

@@ -2,43 +2,38 @@ import space.vectrix.flare.templates.GenerateTemplates
 import java.util.stream.Collectors
 
 plugins {
-  id("flare.shared-conventions")
+  id("flare.common-conventions")
   id("flare-templates")
 }
 
 dependencies {
-  api("it.unimi.dsi:fastutil:8.5.8")
+  compileOnlyApi(libs.jetbrains.annotations)
+  api(libs.fastutil)
 }
 
-val licenseText : Property<String> = objects.property(String::class.java)
-licenseText.set(providers.provider {
-  val text : String = File("license_header.txt").readText(Charsets.UTF_8)
-  val splitText : List<String> = text.lines()
-  val lineEnding : String = license.lineEnding.get()
-  splitText.subList(0, splitText.size - 1).stream()
-    .map { if(it.isEmpty()) { " *" } else { " * $it" } }
-    .collect(Collectors.joining(lineEnding, "/*$lineEnding", "$lineEnding */"))
-})
-licenseText.finalizeValueOnRead()
+val primitiveData = file("src/templateData/primitive.yaml")
 
 sourceSets {
   main {
+    multirelease {
+      alternateVersions(9)
+    }
+
     templates.templateSets.register("primitive") {
-      dataFiles.from(files("src/templateData/primitive.yaml"))
+      dataFiles.from(primitiveData)
       variants("double", "float", "int", "long", "short")
     }
   }
   test {
     templates.templateSets.register("primitive") {
-      dataFiles.from(files("src/templateData/primitive.yaml"))
+      dataFiles.from(primitiveData)
       variants("double", "float", "int", "long", "short")
     }
   }
-  configureEach {
-    templates.templateSets.configureEach {
-      header.set(licenseText)
-    }
-  }
+}
+
+tasks.withType(GenerateTemplates::class) {
+  finalizedBy("spotlessJavaApply")
 }
 
 tasks.withType(JavaCompile::class) {

@@ -128,13 +128,13 @@ public abstract class {{ K }}2ObjectAbstractMapTest<V> {
     for(int i = 0; i < 10; i++) {
       assertEquals(this.value(0), map.get(this.key(0)), "Map should return the value at index 0 when no mutation of the key at index 0 should have occurred.");
     }
-    assertEquals(this.value(0), map.computeIfAbsent(this.key(0), new {{ K }}2ObjectFunction<V>() {
+    assertNull(map.computeIfAbsent(this.key(0), new {{ K }}2ObjectFunction<V>() {
         @Override
         public V get(final {{ k }} key) {
           assertEquals({{ K }}2ObjectAbstractMapTest.this.key(0), key, "Map should input the key at index 0.");
           return null;
         }
-    }), "Map should return the value at index 0, when attempting to computeIfAbsent the key at index 0.");
+    }), "Map should return null, when attempting to computeIfAbsent the key at index 0.");
     assertEquals(this.value(0), map.get(this.key(0)), "Map should return the value at index 0 when no mutation of the key at index 0 should have occurred.");
   }
 

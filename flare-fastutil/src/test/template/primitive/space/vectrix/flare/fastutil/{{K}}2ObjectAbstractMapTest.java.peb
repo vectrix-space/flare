@@ -4,12 +4,11 @@ import it.unimi.dsi.fastutil.{{ G }}.{{ K }}Iterator;
 import it.unimi.dsi.fastutil.{{ G }}.{{ K }}Set;
 import it.unimi.dsi.fastutil.{{ G }}.{{ K }}2ObjectFunction;
 import it.unimi.dsi.fastutil.{{ G }}.{{ K }}2ObjectMap;
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.junit.jupiter.api.Test;
-
 import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -420,20 +419,4 @@ public abstract class {{ K }}2ObjectAbstractMapTest<V> {
     assertFalse(keys.contains(this.key(0)));
     assertEquals(4, keys.size());
   }
-
-  // Value Collection
-
-//  @Test
-//  public void testValues() {
-//    final {{ K }}2ObjectMap<V> map = this.populate(this.createMap(), 5);
-//    final Collection<V> values = map.values();
-//    assertEquals(5, values.size(), "Collection size should be 5.");
-//    assertFalse(values.isEmpty());
-//    assertTrue(values.contains(this.value(0)));
-//    assertFalse(values.contains(this.value(5)));
-//    assertTrue(values.remove(this.value(0)));
-//    assertFalse(values.remove(this.value(5)));
-//    assertFalse(values.contains(this.value(0)));
-//    assertEquals(4, values.size());
-//  }
 }

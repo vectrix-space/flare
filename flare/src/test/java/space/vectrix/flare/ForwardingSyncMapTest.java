@@ -25,11 +25,6 @@
 package space.vectrix.flare;
 
 import com.google.common.collect.Lists;
-import net.jodah.concurrentunit.Waiter;
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.junit.jupiter.api.Test;
-import space.vectrix.test.TestHelper;
-
 import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.Iterator;
@@ -37,6 +32,10 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import net.jodah.concurrentunit.Waiter;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.junit.jupiter.api.Test;
+import space.vectrix.test.TestHelper;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -373,7 +372,7 @@ public class ForwardingSyncMapTest extends AbstractMapTest<String, String> {
       try {
         final Random shouldPut = new Random();
         for(int i = 0; i < 1_000_000; i++) {
-          int value = counter.get();
+          final int value = counter.get();
           if(shouldPut.nextBoolean()) {
             map.put(value, Boolean.TRUE);
           } else {

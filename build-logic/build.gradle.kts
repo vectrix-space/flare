@@ -4,9 +4,8 @@ plugins {
 
 dependencies {
   implementation(libs.indra)
-  implementation(libs.indra.crossdoc)
-  implementation(libs.indra.license)
   implementation(libs.indra.sonatype)
+  implementation(libs.indra.spotless)
 }
 
 dependencies {

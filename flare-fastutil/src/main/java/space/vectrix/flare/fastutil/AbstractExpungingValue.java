@@ -24,13 +24,12 @@
  */
 package space.vectrix.flare.fastutil;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import java.util.AbstractMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Abstract wrapper for a value that can be expunged.
@@ -55,12 +54,12 @@ public abstract class AbstractExpungingValue<V> implements ExpungingValue<V> {
   }
 
   @Override
-  public @Nullable V get() {
+  public @Nullable V value() {
     return this.value == AbstractExpungingValue.EXPUNGED ? null : (V) this.value;
   }
 
   @Override
-  public @NotNull V getOrDefault(final @NotNull V defaultValue) {
+  public @NotNull V valueOrDefault(final @NotNull V defaultValue) {
     return this.empty() ? defaultValue : (V) this.value;
   }
 
@@ -119,7 +118,6 @@ public abstract class AbstractExpungingValue<V> implements ExpungingValue<V> {
       if(this.compareAndSet(previous, null)) return (V) previous;
     }
   }
-
 
   @Override
   public boolean unexpunge(final @Nullable V value) {

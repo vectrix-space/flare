@@ -24,9 +24,6 @@
  */
 package space.vectrix.flare;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -34,6 +31,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.BiFunction;
 import java.util.function.IntFunction;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A concurrent map, internally backed by a non-thread-safe map but carefully
@@ -104,7 +103,7 @@ public interface ForwardingSyncMap<K, V> extends ConcurrentMap<K, V> {
    */
   @SuppressWarnings("RedundantTypeArguments")
   static <K> @NotNull Set<K> hashset() {
-    return setOf(HashMap<K, ForwardingSyncMap.ExpungingValue<Boolean>>::new, 16);
+    return ofSet(HashMap<K, ForwardingSyncMap.ExpungingValue<Boolean>>::new, 16);
   }
 
   /**
@@ -118,7 +117,7 @@ public interface ForwardingSyncMap<K, V> extends ConcurrentMap<K, V> {
    */
   @SuppressWarnings("RedundantTypeArguments")
   static <K> @NotNull Set<K> hashset(final int initialCapacity) {
-    return setOf(HashMap<K, ForwardingSyncMap.ExpungingValue<Boolean>>::new, initialCapacity);
+    return ofSet(HashMap<K, ForwardingSyncMap.ExpungingValue<Boolean>>::new, initialCapacity);
   }
 
   /**
@@ -144,19 +143,19 @@ public interface ForwardingSyncMap<K, V> extends ConcurrentMap<K, V> {
    * @param initialCapacity the map initial capacity
    * @param <K> they key type
    * @return a mutable set view of a sync map
-   * @since 0.2.0
+   * @since 3.0.0
    */
-  static <K> @NotNull Set<K> setOf(final @NotNull IntFunction<Map<K, ForwardingSyncMap.ExpungingValue<Boolean>>> function, final int initialCapacity) {
+  static <K> @NotNull Set<K> ofSet(final @NotNull IntFunction<Map<K, ForwardingSyncMap.ExpungingValue<Boolean>>> function, final int initialCapacity) {
     return Collections.newSetFromMap(new ForwardingSyncMapImpl<>(function, initialCapacity));
   }
 
   /**
    * {@inheritDoc}
    *
-   * This implementation is {@code O(n)} in nature due to the need to check
+   * <p>This implementation is {@code O(n)} in nature due to the need to check
    * for any expunged entries. Likewise, as with other concurrent collections,
    * the value obtained by this method may be out of date by the time this
-   * method returns.
+   * method returns.</p>
    *
    * @return the size of all the mappings contained in this map
    */
@@ -166,8 +165,8 @@ public interface ForwardingSyncMap<K, V> extends ConcurrentMap<K, V> {
   /**
    * {@inheritDoc}
    *
-   * The remapping function may be called more than once to avoid locking if
-   * it is not necessary.
+   * <p>The remapping function may be called more than once to avoid locking if
+   * it is not necessary.</p>
    *
    * @param key key with which the specified value is to be associated
    * @param remappingFunction the remapping function to compute a value
@@ -179,8 +178,8 @@ public interface ForwardingSyncMap<K, V> extends ConcurrentMap<K, V> {
   /**
    * {@inheritDoc}
    *
-   * The remapping function may be called more than once to avoid locking if
-   * it is not necessary.
+   * <p>The remapping function may be called more than once to avoid locking if
+   * it is not necessary.</p>
    *
    * @param key key with which the specified value is to be associated
    * @param remappingFunction the remapping function to compute a value
@@ -192,10 +191,10 @@ public interface ForwardingSyncMap<K, V> extends ConcurrentMap<K, V> {
   /**
    * {@inheritDoc}
    *
-   * This method clears the map by resetting the internal state to a state
+   * <p>This method clears the map by resetting the internal state to a state
    * similar to as if a new map had been created. If there are concurrent
    * iterations in progress, they will reflect the state of the map prior to
-   * being cleared.
+   * being cleared.</p>
    */
   @Override
   void clear();
@@ -203,10 +202,10 @@ public interface ForwardingSyncMap<K, V> extends ConcurrentMap<K, V> {
   /**
    * {@inheritDoc}
    *
-   * Iterations over a sync map are thread-safe, and the keys iterated over
+   * <p>Iterations over a sync map are thread-safe, and the keys iterated over
    * will not change for a single iteration attempt, however they may not
    * necessarily reflect the state of the map at the time the iterator was
-   * created.
+   * created.</p>
    *
    * <p>Performance Note: If entries have been appended to the map, iterating
    * over the entry set will automatically promote them to the read map.</p>
@@ -236,7 +235,7 @@ public interface ForwardingSyncMap<K, V> extends ConcurrentMap<K, V> {
      * @return the value or null if it is expunged
      * @since 3.0.0
      */
-    @Nullable V get();
+    @Nullable V value();
 
     /**
      * Returns the value if it exists, otherwise it returns the default value.
@@ -245,7 +244,7 @@ public interface ForwardingSyncMap<K, V> extends ConcurrentMap<K, V> {
      * @return the value if present, otherwise the default value
      * @since 3.0.0
      */
-    @NotNull V getOrDefault(final @NotNull V defaultValue);
+    @NotNull V valueOrDefault(final @NotNull V defaultValue);
 
     /**
      * Attempts to set the value, if the value is not expunged and returns the

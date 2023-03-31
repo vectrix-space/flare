@@ -24,15 +24,14 @@
  */
 package space.vectrix.flare;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.AbstractMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiFunction;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 @SuppressWarnings({"unchecked", "FieldMayBeFinal"})
 /* package */ final class ExpungingValueImpl<V> implements ForwardingSyncMap.ExpungingValue<V> {
@@ -59,12 +58,12 @@ import java.util.function.BiFunction;
   }
 
   @Override
-  public @Nullable V get() {
+  public @Nullable V value() {
     return this.value == ExpungingValueImpl.EXPUNGED ? null : (V) this.value;
   }
 
   @Override
-  public @NotNull V getOrDefault(final @NotNull V defaultValue) {
+  public @NotNull V valueOrDefault(final @NotNull V defaultValue) {
     return this.empty() ? defaultValue : (V) this.value;
   }
 
@@ -144,7 +143,6 @@ import java.util.function.BiFunction;
       if(this.compareAndSet(previous, null)) return (V) previous;
     }
   }
-
 
   @Override
   public boolean unexpunge(final @Nullable V value) {

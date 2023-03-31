@@ -1,6 +1,7 @@
 metadata.format.version = "1.1"
 
 [versions]
+checkstyle = "10.8.0"
 concurrentunit = "0.4.6"
 fastutil = "8.5.12"
 guava = "31.1-jre"
@@ -31,11 +32,17 @@ pebble = { module = "io.pebbletemplates:pebble", version.ref = "pebble" }
 snakeyamlEngine = { module = "org.snakeyaml:snakeyaml-engine", version.ref = "snakeyaml" }
 
 # build-logic
+stylecheck = "ca.stellardrift:stylecheck:0.2.0"
+
+# build
 indra = { module = "net.kyori:indra-common", version.ref = "indra" }
-indra-crossdoc = { module = "net.kyori:indra-crossdoc", version.ref = "indra" }
-indra-license = { module = "net.kyori:indra-licenser-spotless", version.ref = "indra" }
-indra-sonatype = { module = "net.kyori:indra-licenser-spotless", version.ref = "indra" }
+indra-sonatype = { module = "net.kyori:indra-publishing-sonatype", version.ref = "indra" }
+indra-spotless = { module = "net.kyori:indra-licenser-spotless", version.ref = "indra" }
 jmh = { module = "me.champeau.jmh:jmh-gradle-plugin", version.ref = "jmhPlugin" }
+
+# unused, for renovate
+zCheckstyle = { module = "com.puppycrawl.tools:checkstyle", version.ref = "checkstyle" }
+zJmh = { module = "org.openjdk.jmh:jmh-core", version.ref = "jmh" }
 
 [plugins]
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }

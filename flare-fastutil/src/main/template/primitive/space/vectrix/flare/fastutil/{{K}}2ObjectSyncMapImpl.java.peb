@@ -6,9 +6,6 @@ import it.unimi.dsi.fastutil.{{ G }}.{{ K }}2ObjectMap;
 import it.unimi.dsi.fastutil.objects.AbstractObjectSet;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import it.unimi.dsi.fastutil.objects.ObjectSet;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -16,6 +13,8 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.IntFunction;
 import java.util.function.{{ KA }}Function;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static java.util.Objects.requireNonNull;
 
@@ -60,31 +59,31 @@ import static java.util.Objects.requireNonNull;
   public boolean containsValue(final @Nullable Object value) {
     final {{ K }}2ObjectMap<{{ K }}2ObjectExpungingValue<V>> immutable = this.promote();
     for(final ExpungingValue<V> entry : immutable.values()) {
-      if(Objects.equals(entry.get(), value)) return true;
+      if(Objects.equals(entry.value(), value)) return true;
     }
     return false;
   }
 
   @Override
   public boolean containsKey(final {{ k }} key) {
-    final {{ K }}2ObjectExpungingValue<V> value = this.getValue(key);
+    final {{ K }}2ObjectExpungingValue<V> value = this.value(key);
     return value != null && !value.empty();
   }
 
   @Override
   public @Nullable V get(final {{ k }} key) {
-    final {{ K }}2ObjectExpungingValue<V> value = this.getValue(key);
-    return value != null ? value.get() : null;
+    final {{ K }}2ObjectExpungingValue<V> value = this.value(key);
+    return value != null ? value.value() : null;
   }
 
   @Override
   public @NotNull V getOrDefault(final {{ k }} key, final @NotNull V defaultValue) {
     requireNonNull(defaultValue, "defaultValue");
-    final {{ K }}2ObjectExpungingValue<V> value = this.getValue(key);
-    return value != null ? value.getOrDefault(defaultValue) : defaultValue;
+    final {{ K }}2ObjectExpungingValue<V> value = this.value(key);
+    return value != null ? value.valueOrDefault(defaultValue) : defaultValue;
   }
 
-  private @Nullable {{ K }}2ObjectSyncMap.{{ K }}2ObjectExpungingValue<V> getValue(final {{ k }} key) {
+  private {{ K }}2ObjectSyncMap.@Nullable {{ K }}2ObjectExpungingValue<V> value(final {{ k }} key) {
     {{ K }}2ObjectExpungingValue<V> entry = this.immutable.get(key);
     if(entry != null) return entry;
     if(this.amended) {
@@ -187,15 +186,16 @@ import static java.util.Objects.requireNonNull;
     {{ K }}2ObjectExpungingValue<V> entry = this.immutable.get(key);
     final Map.Entry<V, ExpungingValue.Operation> result = entry != null ? entry.computePresent(key, remappingFunction) : null;
     if(result != null && result.getValue() != ExpungingValue.Operation.EXPUNGED) return result.getKey();
-    V previous, next = null;
+    final V previous;
+    V next = null;
     synchronized(this.lock) {
       if((entry = this.immutable.get(key)) != null) {
         // If the entry value does not exist, return null,
         // otherwise force set the value onto the entry.
-        if((previous = entry.get()) == null) return null;
+        if((previous = entry.value()) == null) return null;
         entry.forceUpdate(previous, next = remappingFunction.apply(key, previous));
       } else if(this.amended && (entry = this.mutable.get(key)) != null) {
-        if((previous = entry.get()) == null) return null;
+        if((previous = entry.value()) == null) return null;
         entry.forceUpdate(previous, next = remappingFunction.apply(key, previous));
         // The slow path should be avoided, even if the value does
         // not match or is present. So we mark a miss, to eventually
@@ -215,7 +215,7 @@ import static java.util.Objects.requireNonNull;
     final V next;
     synchronized(this.lock) {
       if((entry = this.immutable.get(key)) != null) {
-        next = remappingFunction.apply(key, entry.get());
+        next = remappingFunction.apply(key, entry.value());
         // If the entry was expunged, unexpunge, add the entry
         // back to the mutable map, if the value exists.
         if(entry.unexpunge(next)) {
@@ -225,7 +225,7 @@ import static java.util.Objects.requireNonNull;
         // Otherwise force set the value onto the entry.
         entry.forceSet(next);
       } else if(this.amended && (entry = this.mutable.get(key)) != null) {
-        next = remappingFunction.apply(key, entry.get());
+        next = remappingFunction.apply(key, entry.value());
         // If the value does not exist, remove it from the
         // mutable map and force set the next value.
         if(next == null) this.mutable.remove(key);
@@ -286,7 +286,7 @@ import static java.util.Objects.requireNonNull;
   public @Nullable V put(final {{ k }} key, final @NotNull V value) {
     requireNonNull(value, "value");
     {{ K }}2ObjectExpungingValue<V> entry = this.immutable.get(key);
-    Map.Entry<V, ExpungingValue.Operation> result = entry != null ? entry.set(value) : null;
+    final Map.Entry<V, ExpungingValue.Operation> result = entry != null ? entry.set(value) : null;
     if(result != null && result.getValue() != ExpungingValue.Operation.EXPUNGED) return result.getKey();
     final V previousValue;
     synchronized(this.lock) {
@@ -298,10 +298,10 @@ import static java.util.Objects.requireNonNull;
           return null;
         }
         // Otherwise force set the value onto the entry.
-        previousValue = entry.get();
+        previousValue = entry.value();
         entry.forceSet(value);
       } else if(this.amended && (entry = this.mutable.get(key)) != null) {
-        previousValue = entry.get();
+        previousValue = entry.value();
         entry.forceSet(value);
         // The slow path should be avoided, even if the value does
         // not match or is present. So we mark a miss, to eventually
@@ -361,16 +361,16 @@ import static java.util.Objects.requireNonNull;
   public @Nullable V replace(final {{ k }} key, final @NotNull V value) {
     requireNonNull(value, "value");
     {{ K }}2ObjectExpungingValue<V> entry = this.immutable.get(key);
-    Map.Entry<V, ExpungingValue.Operation> result = entry != null ? entry.set(value) : null;
+    final Map.Entry<V, ExpungingValue.Operation> result = entry != null ? entry.set(value) : null;
     if(result != null && result.getValue() != ExpungingValue.Operation.EXPUNGED) return result.getKey();
     V previousValue = null;
     if(this.amended) {
       synchronized(this.lock) {
         if((entry = this.immutable.get(key)) != null) {
-          previousValue = entry.get();
+          previousValue = entry.value();
           entry.forceSet(value);
         } else if(this.amended && (entry = this.mutable.get(key)) != null) {
-          previousValue = entry.get();
+          previousValue = entry.value();
           entry.forceSet(value);
           // The slow path should be avoided, even if the value does
           // not match or is present. So we mark a miss, to eventually
@@ -413,7 +413,7 @@ import static java.util.Objects.requireNonNull;
     final {{ K }}2ObjectMap<{{ K }}2ObjectExpungingValue<V>> immutable = this.promote();
     V value;
     for(final {{ K }}2ObjectMap.Entry<{{ K }}2ObjectExpungingValue<V>> that : immutable.{{ k }}2ObjectEntrySet()) {
-      if((value = that.getValue().get()) != null) {
+      if((value = that.getValue().value()) != null) {
         action.accept(that.get{{ K }}Key(), value);
       }
     }
@@ -427,14 +427,14 @@ import static java.util.Objects.requireNonNull;
       final {{ k }} key = that.get{{ K }}Key();
       final V previous;
       {{ K }}2ObjectExpungingValue<V> entry = that.getValue();
-      Map.Entry<V, ExpungingValue.Operation> result = entry != null ? entry.compute(key, function) : null;
+      final Map.Entry<V, ExpungingValue.Operation> result = entry != null ? entry.compute(key, function) : null;
       if(result == null && this.amended) {
         synchronized(this.lock) {
           if((entry = this.immutable.get(key)) != null) {
-            if((previous = entry.get()) == null) continue;
+            if((previous = entry.value()) == null) continue;
             entry.forceUpdate(previous, function.apply(key, previous));
           } else if(this.amended && (entry = this.mutable.get(key)) != null) {
-            if((previous = entry.get()) == null) continue;
+            if((previous = entry.value()) == null) continue;
             entry.forceUpdate(previous, function.apply(key, previous));
             // The slow path should be avoided, even if the value does
             // not match or is present. So we mark a miss, to eventually
@@ -504,7 +504,6 @@ import static java.util.Objects.requireNonNull;
       this.key = key;
     }
 
-
     @Override
     public {{ k }} get{{ K }}Key() {
       return this.key;
@@ -562,7 +561,7 @@ import static java.util.Objects.requireNonNull;
     }
 
     @Override
-    public boolean add(final @NotNull {{ K }}2ObjectMap.Entry<V> entry) {
+    public boolean add(final {{ K }}2ObjectMap.@NotNull Entry<V> entry) {
       requireNonNull(entry, "entry");
       return {{ K }}2ObjectSyncMapImpl.this.put(entry.get{{ K }}Key(), entry.getValue()) == null;
     }
@@ -607,7 +606,7 @@ import static java.util.Objects.requireNonNull;
     }
 
     @Override
-    public @NotNull {{ K }}2ObjectMap.Entry<V> next() {
+    public {{ K }}2ObjectMap.@NotNull Entry<V> next() {
       if((this.current = this.next) == null) throw new NoSuchElementException();
       this.advance();
       return this.current;

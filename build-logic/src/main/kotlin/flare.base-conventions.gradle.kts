@@ -14,6 +14,8 @@ indra {
     testWith().addAll(testVersions)
   }
 
+  checkstyle(libs.versions.checkstyle.get())
+
   github("vectrix-space", "flare") {
     ci(true)
   }

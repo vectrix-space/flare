@@ -24,10 +24,9 @@
  */
 package space.vectrix.flare.fastutil;
 
+import java.util.Map;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.Map;
 
 /**
  * Wrapper for a value that can be expunged.
@@ -51,7 +50,7 @@ public interface ExpungingValue<V> {
    * @return the value or null if it is expunged
    * @since 3.0.0
    */
-  @Nullable V get();
+  @Nullable V value();
 
   /**
    * Returns the value if it exists, otherwise it returns the default value.
@@ -60,7 +59,7 @@ public interface ExpungingValue<V> {
    * @return the value if present, otherwise the default value
    * @since 3.0.0
    */
-  @NotNull V getOrDefault(final @NotNull V defaultValue);
+  @NotNull V valueOrDefault(final @NotNull V defaultValue);
 
   /**
    * Attempts to set the value, if the value is not expunged and returns the

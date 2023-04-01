@@ -52,10 +52,14 @@ Various concepts inspired by [Go].
 
 - [connorhartley]
 - [astei]
+- [SpongePowered] - Template build-tool scripts
+- [KyoriPowered] - Build scripts
 
 [Go]: https://golang.org/
 
 [connorhartley]: https://github.com/connorhartley
 [astei]: https://github.com/astei
+[KyoriPowered]: https://github.com/KyoriPowered
+[SpongePowered]: https://github.com/SpongePowered
 
 [Gradle]: https://www.gradle.org/

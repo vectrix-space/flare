@@ -33,13 +33,18 @@ public final class TestHelper {
    * @param runnable the function to execute
    * @since 0.2.0
    */
-  public static void threadedRun(int threadCount, Runnable runnable) {
-    Thread[] threads = new Thread[threadCount];
+  public static void threadedRun(final int threadCount, final Runnable runnable) {
+    final Thread[] threads = new Thread[threadCount];
 
-    for (int i = 0; i < threadCount; i++)
+    for(int i = 0; i < threadCount; i++) {
       threads[i] = new Thread(runnable);
+    }
 
-    for (int i = 0; i < threadCount; i++)
+    for(int i = 0; i < threadCount; i++) {
       threads[i].start();
+    }
+  }
+
+  private TestHelper() {
   }
 }

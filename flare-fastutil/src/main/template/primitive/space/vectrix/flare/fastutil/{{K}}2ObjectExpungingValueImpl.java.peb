@@ -1,0 +1,34 @@
+package space.vectrix.flare.fastutil;
+
+import java.util.AbstractMap;
+import java.util.Map;
+import java.util.function.BiFunction;
+import org.jetbrains.annotations.NotNull;
+
+@SuppressWarnings("unchecked")
+/* package */ final class {{ K }}2ObjectExpungingValueImpl<V> extends AbstractExpungingValue<V> implements {{ K }}2ObjectSyncMap.{{ K }}2ObjectExpungingValue<V> {
+  /* package */ {{ K }}2ObjectExpungingValueImpl(final @NotNull V value) {
+    super(value);
+  }
+
+  @Override
+  public Map.@NotNull Entry<V, Operation> compute(final {{ k }} key, final @NotNull BiFunction<? super {{ KT }}, ? super V, ? extends V> remappingFunction) {
+    V next;
+    for(; ; ) {
+      final Object previous = this.value;
+      if(previous == AbstractExpungingValue.EXPUNGED) return new AbstractMap.SimpleImmutableEntry<>(null, Operation.EXPUNGED);
+      if(this.compareAndSet(previous, next = remappingFunction.apply(key, (V) previous))) return new AbstractMap.SimpleImmutableEntry<>(next, Operation.MODIFIED);
+    }
+  }
+
+  @Override
+  public Map.@NotNull Entry<V, Operation> computePresent(final {{ k }} key, final @NotNull BiFunction<? super {{ KT }}, ? super V, ? extends V> remappingFunction) {
+    V next;
+    for(; ; ) {
+      final Object previous = this.value;
+      if(previous == AbstractExpungingValue.EXPUNGED) return new AbstractMap.SimpleImmutableEntry<>(null, Operation.EXPUNGED);
+      if(previous == null) return new AbstractMap.SimpleImmutableEntry<>(null, Operation.UNMODIFIED);
+      if(this.compareAndSet(previous, next = remappingFunction.apply(key, (V) previous))) return new AbstractMap.SimpleImmutableEntry<>(next, Operation.MODIFIED);
+    }
+  }
+}

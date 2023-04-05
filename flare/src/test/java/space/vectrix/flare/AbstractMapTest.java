@@ -24,14 +24,13 @@
  */
 package space.vectrix.flare;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.junit.jupiter.api.Test;
-
 import java.util.Collection;
 import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;

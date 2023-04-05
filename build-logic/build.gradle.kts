@@ -2,11 +2,27 @@ plugins {
   `kotlin-dsl`
 }
 
-repositories {
-  gradlePluginPortal()
+dependencies {
+  implementation(libs.indra)
+  implementation(libs.indra.sonatype)
+  implementation(libs.indra.spotless)
 }
 
 dependencies {
-  implementation("net.kyori", "indra-common", "2.1.1")
-  implementation("de.marcphilipp.gradle", "nexus-publish-plugin", "0.4.0")
+  compileOnly(files(libs::class.java.protectionDomain.codeSource.location))
+}
+
+java {
+  sourceCompatibility = JavaVersion.VERSION_1_8
+  targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+kotlin {
+  target {
+    compilations.configureEach {
+      kotlinOptions {
+        jvmTarget = "1.8"
+      }
+    }
+  }
 }

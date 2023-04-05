@@ -1,24 +1,22 @@
 package space.vectrix.flare.fastutil;
 
-import it.unimi.dsi.fastutil.{{ G }}.{{ K }}2ObjectFunction;
 import it.unimi.dsi.fastutil.{{ G }}.{{ K }}2ObjectMap;
 import it.unimi.dsi.fastutil.{{ G }}.{{ K }}2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.{{ G }}.{{ K }}Set;
 import it.unimi.dsi.fastutil.objects.ObjectSet;
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.Collections;
 import java.util.Map;
 import java.util.function.BiFunction;
-import java.util.function.{{ KA }}Function;
 import java.util.function.IntFunction;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A concurrent map, internally backed by a non-thread-safe map but carefully
  * managed in a matter such that any changes are thread-safe. Internally, the
- * map is split into a {@code read} and a {@code dirty} map. The read map only
- * satisfies read requests, while the dirty map satisfies all other requests.
+ * map is split into an {@code immutable} and {@code mutable} map. The
+ * immutable map only satisfies read requests, while the mutable map satisfies
+ * all other requests.
  *
  * <p>The map is optimized for two common use cases:</p>
  *
@@ -26,18 +24,18 @@ import java.util.function.IntFunction;
  *     <li>The entry for the given map is only written once but read many
  *         times, as in a cache that only grows.</li>
  *
- *     <li>Heavy concurrent modification of entries for a disjoint set of
+ *     <li>Heavy concurrent modification of entries over a disjoint set of
  *         keys.</li>
  * </ul>
  *
  * <p>In both cases, this map significantly reduces lock contention compared
  * to a traditional map paired with a read and write lock, along with maps
- * with an exclusive lock (such as using {@link Collections#synchronizedMap(Map)}.</p>
+ * with an exclusive lock (such as using
+ * {@link Collections#synchronizedMap(Map)}).</p>
  *
- * <p>Null values are not accepted. Null keys are supported if the backing collection
- * supports them.</p>
+ * <p>Null values are not accepted.</p>
  *
- * <p>Based on: https://golang.org/src/sync/map.go</p>
+ * <p>Based on: <a href="https://go.dev/src/sync/map.go">sync/map.go</a></p>
  *
  * @param <V> the value type
  * @since 0.2.0
@@ -51,13 +49,13 @@ public interface {{ K }}2ObjectSyncMap<V> extends {{ K }}2ObjectMap<V> {
    * @since 0.2.0
    */
   @SuppressWarnings("RedundantTypeArguments")
-  static <V> @NonNull {{ K }}2ObjectSyncMap<V> hashmap() {
-    return of({{ K }}2ObjectOpenHashMap<ExpungingEntry<V>>::new, 16);
+  static <V> @NotNull {{ K }}2ObjectSyncMap<V> hashmap() {
+    return of({{ K }}2ObjectOpenHashMap<{{ K }}2ObjectExpungingValue<V>>::new, 16);
   }
 
   /**
-   * Returns a new sync map, backed by a {@link {{ K }}2ObjectOpenHashMap} with a provided initial
-   * capacity.
+   * Returns a new sync map, backed by a {@link {{ K }}2ObjectOpenHashMap} with a provided
+   * initial capacity.
    *
    * @param initialCapacity the initial capacity of the hash map
    * @param <V> the value type
@@ -65,8 +63,8 @@ public interface {{ K }}2ObjectSyncMap<V> extends {{ K }}2ObjectMap<V> {
    * @since 0.2.0
    */
   @SuppressWarnings("RedundantTypeArguments")
-  static <V> @NonNull {{ K }}2ObjectSyncMap<V> hashmap(final int initialCapacity) {
-    return of({{ K }}2ObjectOpenHashMap<ExpungingEntry<V>>::new, initialCapacity);
+  static <V> @NotNull {{ K }}2ObjectSyncMap<V> hashmap(final int initialCapacity) {
+    return of({{ K }}2ObjectOpenHashMap<{{ K }}2ObjectExpungingValue<V>>::new, initialCapacity);
   }
 
   /**
@@ -76,8 +74,8 @@ public interface {{ K }}2ObjectSyncMap<V> extends {{ K }}2ObjectMap<V> {
    * @since 0.2.0
    */
   @SuppressWarnings("RedundantTypeArguments")
-  static @NonNull {{ K }}Set hashset() {
-    return setOf({{ K }}2ObjectOpenHashMap<ExpungingEntry<Boolean>>::new, 16);
+  static @NotNull {{ K }}Set hashset() {
+    return ofSet({{ K }}2ObjectOpenHashMap<{{ K }}2ObjectExpungingValue<Boolean>>::new, 16);
   }
 
   /**
@@ -89,13 +87,13 @@ public interface {{ K }}2ObjectSyncMap<V> extends {{ K }}2ObjectMap<V> {
    * @since 0.2.0
    */
   @SuppressWarnings("RedundantTypeArguments")
-  static @NonNull {{ K }}Set hashset(final int initialCapacity) {
-    return setOf({{ K }}2ObjectOpenHashMap<ExpungingEntry<Boolean>>::new, initialCapacity);
+  static @NotNull {{ K }}Set hashset(final int initialCapacity) {
+    return ofSet({{ K }}2ObjectOpenHashMap<{{ K }}2ObjectExpungingValue<Boolean>>::new, initialCapacity);
   }
 
   /**
-   * Returns a new sync map, backed by the provided {@link {{ K }}2ObjectMap}
-   * implementation with a provided initial capacity.
+   * Returns a new sync map, backed by the provided {@link {{ K }}2ObjectMap} implementation
+   * with a provided initial capacity.
    *
    * @param function the map creation function
    * @param initialCapacity the map initial capacity
@@ -103,7 +101,7 @@ public interface {{ K }}2ObjectSyncMap<V> extends {{ K }}2ObjectMap<V> {
    * @return a sync map
    * @since 0.2.0
    */
-  static <V> @NonNull {{ K }}2ObjectSyncMap<V> of(final @NonNull IntFunction<{{ K }}2ObjectMap<ExpungingEntry<V>>> function, final int initialCapacity) {
+  static <V> @NotNull {{ K }}2ObjectSyncMap<V> of(final @NotNull IntFunction<{{ K }}2ObjectMap<{{ K }}2ObjectExpungingValue<V>>> function, final int initialCapacity) {
     return new {{ K }}2ObjectSyncMapImpl<>(function, initialCapacity);
   }
 
@@ -114,30 +112,19 @@ public interface {{ K }}2ObjectSyncMap<V> extends {{ K }}2ObjectMap<V> {
    * @param function the map creation function
    * @param initialCapacity the map initial capacity
    * @return a mutable set view of a sync map
-   * @since 0.2.0
+   * @since 3.0.0
    */
-  static @NonNull {{ K }}Set setOf(final @NonNull IntFunction<{{ K }}2ObjectMap<ExpungingEntry<Boolean>>> function, final int initialCapacity) {
+  static @NotNull {{ K }}Set ofSet(final @NotNull IntFunction<{{ K }}2ObjectMap<{{ K }}2ObjectExpungingValue<Boolean>>> function, final int initialCapacity) {
     return new {{ K }}2ObjectSyncMapSet(new {{ K }}2ObjectSyncMapImpl<>(function, initialCapacity));
   }
 
   /**
    * {@inheritDoc}
    *
-   * Iterations over a sync map are thread-safe, and the keys iterated over will not change for a single iteration
-   * attempt, however they may not necessarily reflect the state of the map at the time the iterator was created.
-   *
-   * <p>Performance Note: If entries have been appended to the map, iterating over the entry set will automatically
-   * promote them to the read map.</p>
-   */
-  @Override
-  @NonNull ObjectSet<Entry<V>> {{ k }}2ObjectEntrySet();
-
-  /**
-   * {@inheritDoc}
-   *
-   * This implementation is {@code O(n)} in nature due to the need to check for any expunged entries. Likewise, as
-   * with other concurrent collections, the value obtained by this method may be out of date by the time this method
-   * returns.
+   * <p>This implementation is {@code O(n)} in nature due to the need to check
+   * for any expunged entries. Likewise, as with other concurrent collections,
+   * the value obtained by this method may be out of date by the time this
+   * method returns.</p>
    *
    * @return the size of all the mappings contained in this map
    */
@@ -147,235 +134,83 @@ public interface {{ K }}2ObjectSyncMap<V> extends {{ K }}2ObjectMap<V> {
   /**
    * {@inheritDoc}
    *
-   * This method clears the map by resetting the internal state to a state similar to as if a new map had been created.
-   * If there are concurrent iterations in progress, they will reflect the state of the map prior to being cleared.
+   * <p>The remapping function may be called more than once to avoid locking if
+   * it is not necessary.</p>
+   *
+   * @param key key with which the specified value is to be associated
+   * @param remappingFunction the remapping function to compute a value
+   * @return the new value associated with the specified key, or null if none
+   */
+  @Override
+  @Nullable V computeIfPresent(final {{ k }} key, final @NotNull BiFunction<? super {{ KT }}, ? super V, ? extends V> remappingFunction);
+
+  /**
+   * {@inheritDoc}
+   *
+   * <p>The remapping function may be called more than once to avoid locking if
+   * it is not necessary.</p>
+   *
+   * @param key key with which the specified value is to be associated
+   * @param remappingFunction the remapping function to compute a value
+   * @return the new value associated with the specified key, or null if none
+   */
+  @Override
+  @Nullable V compute(final {{ k }} key, final @NotNull BiFunction<? super {{ KT }}, ? super V, ? extends V> remappingFunction);
+
+  /**
+   * {@inheritDoc}
+   *
+   * <p>This method clears the map by resetting the internal state to a state
+   * similar to as if a new map had been created. If there are concurrent
+   * iterations in progress, they will reflect the state of the map prior to
+   * being cleared.</p>
    */
   @Override
   void clear();
 
   /**
-   * The expunging value the backing map wraps for its values.
+   * {@inheritDoc}
    *
-   * @param <V> the backing value type
-   * @since 2.0.0
+   * <p>Iterations over a sync map are thread-safe, and the keys iterated over
+   * will not change for a single iteration attempt, however they may not
+   * necessarily reflect the state of the map at the time the iterator was
+   * created.</p>
+   *
+   * <p>Performance Note: If entries have been appended to the map, iterating
+   * over the entry set will automatically promote them to the read map.</p>
    */
-  interface ExpungingEntry<V> {
-    /**
-     * Returns {@code true} if this entry has a value, that is
-     * neither {@code null} or expunged. Otherwise, it returns
-     * {@code false}.
-     *
-     * @return true if a value exists, otherwise false
-     * @since 2.0.0
-     */
-    boolean exists();
-
-    /**
-     * Returns the value or {@code null} if it has been expunged.
-     *
-     * @return the value or null if it is expunged
-     * @since 2.0.0
-     */
-    @Nullable V get();
-
-    /**
-     * Returns the value if it exists, otherwise it returns the
-     * default value.
-     *
-     * @param other the default value
-     * @return the value if present, otherwise the default value
-     * @since 2.0.0
-     */
-    @NonNull V getOr(final @NonNull V other);
-
-    /**
-     * Sets the specified value if a value doesn't already exist,
-     * returning an {@link InsertionResult}.
-     *
-     * @param value the value
-     * @return the result entry
-     * @since 2.0.0
-     */
-    @NonNull InsertionResult<V> setIfAbsent(final @NonNull V value);
-
-    /**
-     * Computes the specified value if a value doesn't already exist,
-     * returning an {@link InsertionResult}.
-     *
-     * @param key the key
-     * @param function the function
-     * @return the result entry
-     * @since 2.0.0
-     */
-    @NonNull InsertionResult<V> computeIfAbsent(final {{ k }} key, final @NonNull {{ KA }}Function<? extends V> function);
-
-    /**
-     * Computes the specified value if a value doesn't already exist,
-     * returning an {@link InsertionResult}.
-     *
-     * @param key the key
-     * @param function the function
-     * @return the result entry
-     * @since 2.0.0
-     */
-    @NonNull InsertionResult<V> computeIfAbsentPrimitive(final {{ k }} key, final @NonNull {{ K }}2ObjectFunction<? extends V> function);
-
-    /**
-     * Computes the specified value if a value already exists, returning
-     * an {@link InsertionResult}.
-     *
-     * @param key the key
-     * @param remappingFunction the function
-     * @return the result entry
-     * @since 2.0.0
-     */
-    @NonNull InsertionResult<V> computeIfPresent(final {{ k }} key, final @NonNull BiFunction<? super {{ KT }}, ? super V, ? extends V> remappingFunction);
-
-    /**
-     * Computes the specified value, returning an {@link InsertionResult}.
-     *
-     * @param key the key
-     * @param remappingFunction the function
-     * @return the result entry
-     * @since 2.0.0
-     */
-    @NonNull InsertionResult<V> compute(final {{ k }} key, final @NonNull BiFunction<? super {{ KT }}, ? super V, ? extends V> remappingFunction);
-
-    /**
-     * Sets the value.
-     *
-     * @param value the value
-     * @since 2.0.0
-     */
-    void set(final @NonNull V value);
-
-    /**
-     * Replaces the current value if it matches {@code compare}
-     * with the new {@code value} and returns {@code true}. Otherwise,
-     * it returns {@code false}.
-     *
-     * @param compare The comparing value
-     * @param value The new value
-     * @return true if the value was replaced, otherwise false
-     * @since 2.0.0
-     */
-    boolean replace(final @NonNull Object compare, final @Nullable V value);
-
-    /**
-     * Clears the value.
-     *
-     * @return the value
-     * @since 2.0.0
-     */
-    @Nullable V clear();
-
-    /**
-     * Attempts to set the value, if the value is not expunged
-     * and returns {@code true}. Otherwise, it returns {@code false}.
-     *
-     * @return true if the value was set, otherwise false
-     * @since 2.0.0
-     */
-    boolean trySet(final @NonNull V value);
-
-    /**
-     * Attempts to replace the value, if the value is not expunged or
-     * {@code null} and returns the previous value. Otherwise, it returns
-     * {@code null}.
-     *
-     * @param value the value
-     * @return the previous value if it exists, otherwise null
-     * @since 2.0.0
-     */
-    @Nullable V tryReplace(final @NonNull V value);
-
-    /**
-     * Attempts to expunge the value, if the value is
-     * {@code null} and returns {@code true}. Otherwise, it returns
-     * {@code false}.
-     *
-     * @return true if the value was expunged, otherwise false
-     * @since 2.0.0
-     */
-    boolean tryExpunge();
-
-    /**
-     * Attempts to unexpunge the value and set it, if the value
-     * was expunged and returns {@code true}. Otherwise, it returns
-     * {@code false}.
-     *
-     * @param value the value
-     * @return true if the value was unexpunged, otherwise false
-     * @since 2.0.0
-     */
-    boolean tryUnexpungeAndSet(final @NonNull V value);
-
-    /**
-     * Attempts to unexpunge the value and compute it, if the value
-     * was expunged and returns {@code true}. Otherwise, it returns
-     * {@code false}.
-     *
-     * @param key the key
-     * @param function the function
-     * @return true if the value was unexpunged, otherwise false
-     * @since 2.0.0
-     */
-    boolean tryUnexpungeAndCompute(final {{ k }} key, final @NonNull {{ KA }}Function<? extends V> function);
-
-    /**
-     * Attempts to unexpunge the value and compute it, if the value
-     * was expunged and returns {@code true}. Otherwise, it returns
-     * {@code false}.
-     *
-     * @param key the key
-     * @param function the function
-     * @return true if the value was unexpunged, otherwise false
-     * @since 2.0.0
-     */
-    boolean tryUnexpungeAndComputePrimitive(final {{ k }} key, final @NonNull {{ K }}2ObjectFunction<? extends V> function);
-
-    /**
-     * Attempts to unexpunge the value and compute it, if the value
-     * was expunged and returns {@code true}. Otherwise, it returns
-     * {@code false}.
-     *
-     * @param key the key
-     * @param remappingFunction the remapping function
-     * @return true if the value was unexpunged, otherwise false
-     * @since 2.0.0
-     */
-    boolean tryUnexpungeAndCompute(final {{ k }} key, final @NonNull BiFunction<? super {{ KT }}, ? super V, ? extends V> remappingFunction);
-  }
+  @Override
+  @NotNull ObjectSet<Entry<V>> {{ k }}2ObjectEntrySet();
 
   /**
-   * The insertion result.
+   * The expunging entry the backing map wraps for its values.
    *
    * @param <V> the value type
    * @since 2.0.0
    */
-  interface InsertionResult<V> {
+  interface {{ K }}2ObjectExpungingValue<V> extends ExpungingValue<V> {
     /**
-     * The operation result.
+     * Attempts to compute the value in the provided {@link BiFunction} and
+     * store it returning the next value and the
+     * {@link ExpungingValue.Operation}.
      *
-     * @return the operation
-     * @since 2.0.0
+     * @param key the key
+     * @param remappingFunction the remapping function
+     * @return the next value or null and the operation
+     * @since 3.0.0
      */
-    byte operation();
+    Map.@NotNull Entry<V, ExpungingValue.Operation> compute(final {{ k }} key, final @NotNull BiFunction<? super {{ KT }}, ? super V, ? extends V> remappingFunction);
 
     /**
-     * The previous value.
+     * Attempts to compute the value in the provided {@link BiFunction} and
+     * store it if the value is not expunged returning the next value and
+     * the {@link ExpungingValue.Operation}.
      *
-     * @return the input
-     * @since 2.0.0
+     * @param key the key
+     * @param remappingFunction the remapping function
+     * @return the next value or null and the operation
+     * @since 3.0.0
      */
-    @Nullable V previous();
-
-    /**
-     * The current value.
-     *
-     * @return the output
-     * @since 2.0.0
-     */
-    @Nullable V current();
+    Map.@NotNull Entry<V, ExpungingValue.Operation> computePresent(final {{ k }} key, final @NotNull BiFunction<? super {{ KT }}, ? super V, ? extends V> remappingFunction);
   }
 }

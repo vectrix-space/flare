@@ -48,4 +48,5 @@ public class TemplateProperties {
   public void properties(final Action<MapProperty<String, Object>> action) {
     Configurable.configure(this.properties, action);
   }
+
 }

@@ -25,13 +25,12 @@
  */
 package space.vectrix.flare.templates;
 
-import com.mitchellbosecke.pebble.PebbleEngine;
-import com.mitchellbosecke.pebble.loader.DelegatingLoader;
-import com.mitchellbosecke.pebble.loader.FileLoader;
-import com.mitchellbosecke.pebble.loader.Loader;
-import com.mitchellbosecke.pebble.template.PebbleTemplate;
+import io.pebbletemplates.pebble.PebbleEngine;
+import io.pebbletemplates.pebble.loader.DelegatingLoader;
+import io.pebbletemplates.pebble.loader.FileLoader;
+import io.pebbletemplates.pebble.loader.Loader;
+import io.pebbletemplates.pebble.template.PebbleTemplate;
 import net.kyori.mammoth.Properties;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.InvalidUserDataException;
 import org.gradle.api.file.DirectoryProperty;
@@ -41,6 +40,7 @@ import org.gradle.api.tasks.Nested;
 import org.gradle.api.tasks.Optional;
 import org.gradle.api.tasks.OutputDirectory;
 import org.gradle.api.tasks.TaskAction;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.BufferedWriter;
 import java.io.IOException;

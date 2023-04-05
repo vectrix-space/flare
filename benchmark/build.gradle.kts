@@ -1,28 +1,28 @@
 plugins {
   `java-library`
-  id("me.champeau.jmh") version "0.6.6"
-}
-
-repositories {
-  mavenCentral()
+  alias(libs.plugins.jmh)
 }
 
 dependencies {
-  jmh("org.openjdk.jmh:jmh-core:1.34")
-  jmh("org.openjdk.jmh:jmh-generator-annprocess:1.34")
   implementation(project(":flare"))
   implementation(project(":flare-fastutil"))
+}
+
+dependencies {
+  compileOnly(files(libs::class.java.protectionDomain.codeSource.location))
+}
+
+java {
+  sourceCompatibility = JavaVersion.VERSION_17
+  targetCompatibility = JavaVersion.VERSION_17
 }
 
 jmh {
   // The full list of configuration options can be found here:
   // https://github.com/melix/jmh-gradle-plugin
 
+  jmhVersion.set(libs.versions.jmh)
+
   // Uncomment to collect GC metrics
   // profilers.add("gc")
-}
-
-// Don't publish benchmark
-tasks.withType<PublishToMavenRepository>().configureEach {
-  onlyIf { false }
 }

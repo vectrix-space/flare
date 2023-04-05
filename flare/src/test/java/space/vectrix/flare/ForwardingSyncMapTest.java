@@ -25,17 +25,17 @@
 package space.vectrix.flare;
 
 import com.google.common.collect.Lists;
-import net.jodah.concurrentunit.Waiter;
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.junit.jupiter.api.Test;
-import space.vectrix.test.TestHelper;
-
 import java.util.AbstractMap;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import net.jodah.concurrentunit.Waiter;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.junit.jupiter.api.Test;
+import space.vectrix.test.TestHelper;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -43,7 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class SyncMapTest extends AbstractMapTest<String, String> {
+public class ForwardingSyncMapTest extends AbstractMapTest<String, String> {
   @Override
   protected @NonNull Map<String, String> createMap() {
     return ForwardingSyncMap.hashmap();
@@ -350,6 +350,7 @@ public class SyncMapTest extends AbstractMapTest<String, String> {
     assertEquals(initialSize - 1, map.size(), "Map should return a size with 1 less when removing an entry.");
     assertNull(map.get(this.key(0)), "Map should return null when removing the entry.");
     assertNull(map.remove(this.key(0)), "Map should return null when removing the entry at index 0 with no value present.");
+    assertNull(map.get(this.key(0)), "Map should return null when getting the entry at index 0 with no value present.");
     assertNull(map.put(this.key(0), this.value(0)), "Map should return null when putting the entry into the map.");
     assertEquals(this.value(0), map.get(this.key(0)), "Map should return the value at index 0 for the key at index 0.");
     for(int i = 0; i < 10; i++) { // Read multiple times in order to promote dirty to read map.
@@ -371,12 +372,39 @@ public class SyncMapTest extends AbstractMapTest<String, String> {
       try {
         final Random shouldPut = new Random();
         for(int i = 0; i < 1_000_000; i++) {
-          int value = counter.get();
+          final int value = counter.get();
           if(shouldPut.nextBoolean()) {
             map.put(value, Boolean.TRUE);
           } else {
             map.remove(value);
           }
+        }
+      } catch (final Exception exception) {
+        waiter.fail(exception);
+      }
+
+      waiter.resume();
+    });
+
+    waiter.await(100_000, threadCount);
+  }
+
+  @Test
+  public void testConcurrentIterateRemove() throws Throwable {
+    final Map<Integer, Boolean> map = ForwardingSyncMap.hashmap();
+    for(int i = 0; i < 1_000_000; i++) {
+      map.put(i, Boolean.TRUE);
+    }
+
+    final Waiter waiter = new Waiter();
+
+    final int threadCount = 50;
+    TestHelper.threadedRun(threadCount, () -> {
+      try {
+        final Iterator<Boolean> iterator = map.values().iterator();
+        while(iterator.hasNext()) {
+          iterator.next();
+          iterator.remove();
         }
       } catch (final Exception exception) {
         waiter.fail(exception);

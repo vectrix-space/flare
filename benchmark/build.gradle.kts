@@ -8,7 +8,7 @@ repositories {
 }
 
 dependencies {
-  jmh("org.openjdk.jmh:jmh-core:1.34")
+  jmh("org.openjdk.jmh:jmh-core:1.37")
   jmh("org.openjdk.jmh:jmh-generator-annprocess:1.34")
   implementation(project(":flare"))
   implementation(project(":flare-fastutil"))

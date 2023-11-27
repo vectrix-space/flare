@@ -13,7 +13,7 @@ repositories {
 }
 
 dependencies {
-  implementation("io.pebbletemplates:pebble:3.1.5")
+  implementation("io.pebbletemplates:pebble:3.2.2")
   implementation("org.snakeyaml:snakeyaml-engine:2.3")
   implementation("net.kyori:mammoth:1.0.0")
 }

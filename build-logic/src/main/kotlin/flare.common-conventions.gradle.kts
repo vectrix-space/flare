@@ -15,7 +15,7 @@ dependencies {
   compileOnlyApi("org.checkerframework:checker-qual:3.18.0")
   testImplementation("net.jodah:concurrentunit:0.4.6")
   testImplementation("com.google.guava:guava-testlib:31.0.1-jre")
-  testImplementation(platform("org.junit:junit-bom:5.8.2"))
+  testImplementation(platform("org.junit:junit-bom:5.11.3"))
   testImplementation("org.junit.jupiter:junit-jupiter-api")
   testImplementation("org.junit.jupiter:junit-jupiter-engine")
 }
